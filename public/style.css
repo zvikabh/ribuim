@@ -1,0 +1,422 @@
+:root {
+  --ribuim-bg: #fafafa;
+  --ribuim-card-bg: #ffffff;
+  --ribuim-border: #e0e0e0;
+  --ribuim-border-focus: #fbbc04;
+  --ribuim-accent: #fbbc04;
+}
+
+html, body {
+  background: var(--ribuim-bg);
+  min-height: 100vh;
+}
+
+body {
+  padding-top: 64px; /* space for fixed header */
+}
+
+/* ---------- Header ---------- */
+
+.ribuim-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid var(--ribuim-border);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.ribuim-logo {
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: #202124;
+}
+
+.ribuim-logo-accent {
+  color: var(--ribuim-accent);
+}
+
+.ribuim-header-spacer {
+  flex: 1;
+}
+
+.ribuim-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* ---------- Card grid ---------- */
+
+.note-grid {
+  columns: 280px;
+  column-gap: 12px;
+  padding: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.note-card {
+  break-inside: avoid;
+  margin-bottom: 12px;
+  background: var(--ribuim-card-bg);
+  border: 1px solid var(--ribuim-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: block;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s;
+}
+
+.note-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.note-card:focus-within {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+@media (max-width: 600px) {
+  .note-grid {
+    columns: 1;
+    padding: 8px;
+  }
+  .note-card {
+    margin-bottom: 8px;
+  }
+}
+
+/* ---------- Inline editing inputs ---------- */
+
+.ribuim-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 2px 0;
+  width: 100%;
+  font-size: 0.95rem;
+  color: #202124;
+}
+
+.ribuim-input:focus {
+  border-bottom: 1px solid var(--ribuim-border-focus);
+}
+
+.note-title-input {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+
+/* ---------- Checklist items ---------- */
+
+.checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  cursor: default;
+}
+
+.checklist-item.is-checked .item-label-input {
+  text-decoration: line-through;
+  color: #777;
+}
+
+.checklist-drag-handle {
+  cursor: grab;
+  color: #bbb;
+  font-size: 0.8rem;
+  width: 16px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.checklist-item.is-checked .checklist-drag-handle {
+  visibility: hidden;
+}
+
+.checklist-checkbox {
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.item-label-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checklist-delete {
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  padding: 0 4px;
+  visibility: hidden;
+  font-size: 0.9rem;
+}
+
+.checklist-item:hover .checklist-delete,
+.checklist-item:focus-within .checklist-delete {
+  visibility: visible;
+}
+
+.checklist-delete:hover {
+  color: #d33;
+}
+
+/* SortableJS ghost/drag states */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-chosen {
+  background: #fffbe6;
+}
+
+.sortable-drag {
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ---------- Add-item row ---------- */
+
+.add-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  margin-top: 4px;
+}
+
+.add-item-icon {
+  color: #888;
+  flex-shrink: 0;
+  width: 16px;
+}
+
+/* ---------- Note actions footer ---------- */
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+.note-action-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.note-action-btn:hover {
+  background: #f5f5f5;
+  color: #202124;
+}
+
+.note-action-btn.danger:hover {
+  background: #fce8e6;
+  color: #d33;
+}
+
+.note-action-btn .bi {
+  margin-right: 4px;
+}
+
+/* ---------- Reminder badge ---------- */
+
+.reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  color: #fff;
+}
+
+.reminder-badge.past   { background: #d93025; }
+.reminder-badge.soon3  { background: #f57c00; }
+.reminder-badge.soon6  { background: #f4b400; color: #202124; }
+.reminder-badge.future { background: #34a853; }
+
+.reminder-badge .bi {
+  font-size: 0.85rem;
+}
+
+/* ---------- Reminder picker ---------- */
+
+.reminder-picker {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.reminder-picker input[type="datetime-local"] {
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border: 1px solid var(--ribuim-border);
+  border-radius: 4px;
+}
+
+/* ---------- Reminder banner ---------- */
+
+.reminder-banner-container {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.reminder-banner {
+  pointer-events: auto;
+  background: #fef7e0;
+  border: 1px solid #fbbc04;
+  border-left: 4px solid #d93025;
+  border-radius: 4px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reminder-banner-title {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* ---------- Login screen ---------- */
+
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  text-align: center;
+  padding: 16px;
+}
+
+.login-screen h1 {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.login-screen h1 span {
+  color: var(--ribuim-accent);
+}
+
+.login-screen p {
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.google-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-weight: 500;
+  color: #3c4043;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.google-signin-btn:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.google-g {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- Create note FAB ---------- */
+
+.create-note-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--ribuim-accent);
+  color: #202124;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-note-fab:hover {
+  background: #f9a825;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Empty state ---------- */
+
+.empty-state {
+  text-align: center;
+  color: #888;
+  padding: 64px 16px;
+}
+
+.empty-state .bi {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 12px;
+  color: #ddd;
+}
+
+/* ---------- Error message ---------- */
+
+.access-denied {
+  max-width: 480px;
+  margin: 64px auto;
+  padding: 24px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--ribuim-border);
+  border-radius: 8px;
+}
