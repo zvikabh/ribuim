@@ -108,9 +108,32 @@ async function createNote() {
     reminderRecurrence: "none",
     reminderDone: false,
     items: {},
-    itemOrder: []
+    itemOrder: [],
+    labels: []
   });
   return docRef.id;
+}
+
+async function addLabel(noteId, label) {
+  const trimmed = (label || "").trim();
+  if (!trimmed) return;
+  try {
+    await updateDoc(doc(db, "notes", noteId), {
+      labels: arrayUnion(trimmed)
+    });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
+}
+
+async function removeLabel(noteId, label) {
+  try {
+    await updateDoc(doc(db, "notes", noteId), {
+      labels: arrayRemove(label)
+    });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
 }
 
 // Returns the next occurrence of a recurring rule strictly after `now`.
@@ -213,13 +236,13 @@ async function addItem(noteId, label = "") {
   return itemId;
 }
 
-async function insertItem(noteId, label, newOrder) {
-  const itemId = newItemId();
+async function insertItem(noteId, label, newOrder, itemId = null) {
+  const id = itemId || newItemId();
   await updateDoc(doc(db, "notes", noteId), {
-    [`items.${itemId}`]: { label, checked: false },
-    itemOrder: newOrder.map(id => id === "__NEW__" ? itemId : id)
+    [`items.${id}`]: { label, checked: false },
+    itemOrder: newOrder.map(x => x === "__NEW__" ? id : x)
   });
-  return itemId;
+  return id;
 }
 
 async function deleteItem(noteId, itemId) {
@@ -266,6 +289,9 @@ export function useNotes() {
     deleteItem,
     setItemChecked,
     setItemLabel,
-    setItemOrder
+    setItemOrder,
+    addLabel,
+    removeLabel,
+    newItemId
   };
 }

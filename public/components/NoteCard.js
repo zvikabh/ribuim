@@ -1,31 +1,35 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
+import { useConfirmDialog } from "../composables/useConfirmDialog.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
+import LabelChips from "./LabelChips.js";
 
 export default {
-  components: { ChecklistItem, ReminderBadge, ReminderPicker },
+  components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips },
   props: {
     note: { type: Object, required: true }
   },
   setup(props) {
     const {
+      notes,
       updateTitle, deleteNote: deleteNoteFn,
       setReminder, clearReminder, markReminderDone,
-      insertItem, deleteItem, setItemChecked, setItemLabel, setItemOrder
+      insertItem, deleteItem, setItemChecked, setItemLabel, setItemOrder,
+      newItemId
     } = useNotes();
 
     const titleInputRef = ref(null);
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
+    const pendingFocusId = ref(null);
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
     let titleTimer = null;
     let sortable = null;
-    let pendingFocusId = null;
 
     watch(() => props.note.title, (newVal) => {
       if (!titleDirty.value) localTitle.value = newVal || "";
@@ -71,44 +75,62 @@ export default {
       else delete itemRefs.value[itemId];
     }
 
-    watch(uncheckedItems, async () => {
-      if (pendingFocusId) {
-        await nextTick();
-        const ref = itemRefs.value[pendingFocusId];
-        if (ref && typeof ref.focusInput === "function") {
-          ref.focusInput();
-        }
-        pendingFocusId = null;
-      }
-    });
-
     async function addNewItem(afterItemId = null) {
       const noteId = props.note.id;
       const items = props.note.items || {};
       const existingOrder = props.note.itemOrder || [];
-      const PLACEHOLDER = "__NEW__";
+
+      const newId = newItemId();
 
       let newOrder;
       if (afterItemId) {
         const insertAfter = existingOrder.indexOf(afterItemId);
         if (insertAfter === -1) {
-          newOrder = [...existingOrder, PLACEHOLDER];
+          newOrder = [...existingOrder, newId];
         } else {
           newOrder = [...existingOrder];
-          newOrder.splice(insertAfter + 1, 0, PLACEHOLDER);
+          newOrder.splice(insertAfter + 1, 0, newId);
         }
       } else {
         const firstCheckedIdx = existingOrder.findIndex(id => items[id]?.checked);
         if (firstCheckedIdx === -1) {
-          newOrder = [...existingOrder, PLACEHOLDER];
+          newOrder = [...existingOrder, newId];
         } else {
           newOrder = [...existingOrder];
-          newOrder.splice(firstCheckedIdx, 0, PLACEHOLDER);
+          newOrder.splice(firstCheckedIdx, 0, newId);
         }
       }
 
-      const newId = await insertItem(noteId, "", newOrder);
-      pendingFocusId = newId;
+      // Optimistic local mutation. We can't wait for the Firestore listener
+      // round-trip — the user's next keystroke would fire before the listener
+      // does, landing in the wrong input. Mutating notes.value directly lets
+      // Vue render the new item in this same task, so we can focus it before
+      // the next keystroke is processed. When the listener later fires with
+      // the same data, it's a no-op overwrite.
+      const noteIdx = notes.value.findIndex(n => n.id === noteId);
+      if (noteIdx !== -1) {
+        const oldNote = notes.value[noteIdx];
+        notes.value[noteIdx] = {
+          ...oldNote,
+          items: { ...(oldNote.items || {}), [newId]: { label: "", checked: false } },
+          itemOrder: newOrder
+        };
+      }
+
+      // Trigger autofocus on the new ChecklistItem when it mounts.
+      pendingFocusId.value = newId;
+
+      insertItem(noteId, "", newOrder, newId).catch((err) => {
+        if (err && err.code !== "not-found") {
+          console.error("insertItem failed:", err);
+        }
+      });
+
+      // After the new component has mounted (and onMounted has fired,
+      // focusing the input), clear pendingFocusId so re-renders don't keep
+      // marking it as the autofocus target.
+      await nextTick();
+      pendingFocusId.value = null;
     }
 
     function onItemToggle(itemId, newChecked) {
@@ -159,11 +181,18 @@ export default {
       if (titleDirty.value) flushTitle();
     });
 
-    function confirmDeleteNote() {
+    const { confirm: confirmDialog } = useConfirmDialog();
+
+    async function confirmDeleteNote() {
       const label = props.note.title?.trim() || "this note";
-      if (confirm(`Delete "${label}"?`)) {
-        deleteNoteFn(props.note.id);
-      }
+      const ok = await confirmDialog({
+        title: "Delete note",
+        message: `Delete "${label}"? This can't be undone.`,
+        confirmLabel: "Delete",
+        cancelLabel: "Cancel",
+        variant: "danger"
+      });
+      if (ok) deleteNoteFn(props.note.id);
     }
 
     function onSetReminder(timestamp, recurrence) {
@@ -186,7 +215,7 @@ export default {
       titleInputRef, uncheckedListRef,
       localTitle, onTitleInput, flushTitle,
       uncheckedItems, checkedItems,
-      setItemRef,
+      setItemRef, pendingFocusId,
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty,
       addNewItem,
@@ -217,6 +246,7 @@ export default {
             :ref="(el) => setItemRef(item.id, el)"
             :label="item.label"
             :checked="false"
+            :autofocus="item.id === pendingFocusId"
             @toggle="(c) => onItemToggle(item.id, c)"
             @label-change="(l) => onItemLabelChange(item.id, l)"
             @delete="onItemDelete(item.id)"
@@ -244,6 +274,8 @@ export default {
             @delete="onItemDelete(item.id)" />
         </li>
       </ul>
+
+      <LabelChips :note-id="note.id" :labels="note.labels || []" />
 
       <div class="note-actions">
         <ReminderPicker :reminder-at="note.reminderAt"

@@ -1,13 +1,21 @@
 import { useAuth } from "../composables/useAuth.js";
+import { useView } from "../composables/useView.js";
 
 export default {
   setup() {
     const { currentUser, signOut } = useAuth();
-    return { currentUser, signOut };
+    const { currentViewLabel, toggleSidebar } = useView();
+    return { currentUser, signOut, currentViewLabel, toggleSidebar };
   },
   template: `
     <header class="ribuim-header">
+      <button class="btn btn-sm btn-light d-md-none ribuim-menu-btn"
+              @click="toggleSidebar"
+              title="Menu">
+        <i class="bi bi-list"></i>
+      </button>
       <div class="ribuim-logo">Ribu<span class="ribuim-logo-accent">im</span></div>
+      <div class="ribuim-view-label d-none d-md-inline">{{ currentViewLabel }}</div>
       <div class="ribuim-header-spacer"></div>
       <img v-if="currentUser?.photoURL"
            class="ribuim-user-avatar"

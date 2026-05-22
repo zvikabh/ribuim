@@ -7,9 +7,11 @@ import LoginScreen from "./components/LoginScreen.js";
 import AppHeader from "./components/AppHeader.js";
 import NoteGrid from "./components/NoteGrid.js";
 import ReminderBanner from "./components/ReminderBanner.js";
+import ConfirmDialog from "./components/ConfirmDialog.js";
+import Sidebar from "./components/Sidebar.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
@@ -54,9 +56,14 @@ const App = {
 
     <template v-else>
       <AppHeader />
-      <ReminderBanner />
-      <NoteGrid />
+      <Sidebar />
+      <main class="ribuim-main">
+        <ReminderBanner />
+        <NoteGrid />
+      </main>
     </template>
+
+    <ConfirmDialog />
   `
 };
 

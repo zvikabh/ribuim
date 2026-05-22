@@ -1,4 +1,4 @@
-import { ref, watch, onBeforeUnmount } from "vue";
+import { ref, watch, onBeforeUnmount, onMounted } from "vue";
 
 export default {
   props: {
@@ -56,6 +56,12 @@ export default {
     function focusInput() {
       if (inputRef.value) inputRef.value.focus();
     }
+
+    onMounted(() => {
+      if (props.autofocus && inputRef.value) {
+        inputRef.value.focus();
+      }
+    });
 
     onBeforeUnmount(() => {
       if (timer) clearTimeout(timer);

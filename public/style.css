@@ -4,6 +4,8 @@
   --ribuim-border: #e0e0e0;
   --ribuim-border-focus: #fbbc04;
   --ribuim-accent: #fbbc04;
+  --ribuim-sidebar-width: 240px;
+  --ribuim-header-height: 56px;
 }
 
 html, body {
@@ -12,7 +14,7 @@ html, body {
 }
 
 body {
-  padding-top: 64px; /* space for fixed header */
+  padding-top: var(--ribuim-header-height);
 }
 
 /* ---------- Header ---------- */
@@ -22,7 +24,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: var(--ribuim-header-height);
   background: #fff;
   border-bottom: 1px solid var(--ribuim-border);
   z-index: 100;
@@ -30,6 +32,12 @@ body {
   align-items: center;
   padding: 0 16px;
   gap: 12px;
+}
+
+.ribuim-menu-btn {
+  padding: 4px 8px;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .ribuim-logo {
@@ -42,6 +50,14 @@ body {
   color: var(--ribuim-accent);
 }
 
+.ribuim-view-label {
+  color: #555;
+  font-size: 0.95rem;
+  border-left: 1px solid var(--ribuim-border);
+  padding-left: 12px;
+  margin-left: 4px;
+}
+
 .ribuim-header-spacer {
   flex: 1;
 }
@@ -50,6 +66,99 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+}
+
+/* ---------- Sidebar ---------- */
+
+.ribuim-sidebar {
+  position: fixed;
+  top: var(--ribuim-header-height);
+  left: 0;
+  bottom: 0;
+  width: var(--ribuim-sidebar-width);
+  background: #fff;
+  border-right: 1px solid var(--ribuim-border);
+  overflow-y: auto;
+  z-index: 80;
+  padding: 12px 0;
+}
+
+.ribuim-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.ribuim-sidebar-item {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px 8px 20px;
+  font-size: 0.92rem;
+  color: #333;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0 999px 999px 0;
+  margin-right: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ribuim-sidebar-item:hover {
+  background: #f1f3f4;
+}
+
+.ribuim-sidebar-item.active {
+  background: #feefc3;
+  color: #202124;
+  font-weight: 500;
+}
+
+.ribuim-sidebar-item .bi {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.ribuim-sidebar-section {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  padding: 12px 20px 4px;
+  margin-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ribuim-sidebar-backdrop {
+  position: fixed;
+  top: var(--ribuim-header-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 75;
+}
+
+/* ---------- Main content (offset by sidebar on desktop) ---------- */
+
+.ribuim-main {
+  margin-left: var(--ribuim-sidebar-width);
+}
+
+@media (max-width: 767.98px) {
+  .ribuim-main {
+    margin-left: 0;
+  }
+  .ribuim-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  }
+  .ribuim-sidebar.open {
+    transform: translateX(0);
+  }
 }
 
 /* ---------- Card grid ---------- */
@@ -266,6 +375,121 @@ body {
   font-size: 0.85rem;
 }
 
+/* ---------- Labels ---------- */
+
+.note-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.note-label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #f1f3f4;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 1px 4px 1px 8px;
+  font-size: 0.78rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.note-label-chip .note-label-text {
+  white-space: nowrap;
+}
+
+.note-label-remove {
+  background: none;
+  border: none;
+  color: #888;
+  padding: 0 2px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+}
+.note-label-remove:hover {
+  color: #d33;
+}
+
+.note-label-add {
+  background: none;
+  border: 1px dashed #c0c0c0;
+  color: #666;
+  font-size: 0.78rem;
+  border-radius: 12px;
+  padding: 1px 8px;
+  cursor: pointer;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.note-label-add:hover {
+  background: #f5f5f5;
+  color: #202124;
+  border-style: solid;
+}
+
+.note-label-add-empty {
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+.note-label-input-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.note-label-input {
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border: 1px solid var(--ribuim-border-focus);
+  border-radius: 12px;
+  background: #fff;
+  min-width: 100px;
+  max-width: 200px;
+}
+
+.note-label-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid var(--ribuim-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.note-label-suggestion {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  color: #333;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.note-label-suggestion:hover {
+  background: #f5f5f5;
+}
+
 /* ---------- Reminder picker ---------- */
 
 /* When the picker is open, the wrapper takes a full row in .note-actions
@@ -309,8 +533,8 @@ body {
 
 .reminder-banner-container {
   position: fixed;
-  top: 56px;
-  left: 0;
+  top: var(--ribuim-header-height);
+  left: var(--ribuim-sidebar-width);
   right: 0;
   z-index: 90;
   padding: 8px;
@@ -318,6 +542,12 @@ body {
   flex-direction: column;
   gap: 6px;
   pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+  .reminder-banner-container {
+    left: 0;
+  }
 }
 
 .reminder-banner {
