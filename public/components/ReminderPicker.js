@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { Timestamp } from "firebase/firestore";
 
 function pad(n) { return String(n).padStart(2, "0"); }
@@ -20,18 +20,21 @@ function defaultReminderInputValue() {
 
 export default {
   props: {
-    reminderAt: { type: Object, default: null }
+    reminderAt: { type: Object, default: null },
+    reminderRecurrence: { type: String, default: "none" }
   },
   emits: ["set", "clear", "cancel"],
   setup(props, { emit }) {
     const open = ref(false);
     const inputValue = ref("");
+    const recurrenceValue = ref("none");
 
     function start() {
       const d = props.reminderAt && typeof props.reminderAt.toDate === "function"
         ? props.reminderAt.toDate()
         : null;
       inputValue.value = d ? toLocalInputValue(d) : defaultReminderInputValue();
+      recurrenceValue.value = props.reminderRecurrence || "none";
       open.value = true;
     }
 
@@ -41,7 +44,7 @@ export default {
       } else {
         const d = new Date(inputValue.value);
         if (!isNaN(d.getTime())) {
-          emit("set", Timestamp.fromDate(d));
+          emit("set", Timestamp.fromDate(d), recurrenceValue.value);
         }
       }
       open.value = false;
@@ -58,23 +61,37 @@ export default {
     }
 
     const hasReminder = computed(() => !!props.reminderAt);
+    const isRecurring = computed(() =>
+      props.reminderRecurrence === "daily" || props.reminderRecurrence === "weekly"
+    );
 
-    return { open, inputValue, hasReminder, start, save, clear, cancel };
+    return {
+      open, inputValue, recurrenceValue,
+      hasReminder, isRecurring,
+      start, save, clear, cancel
+    };
   },
   template: `
-    <span>
+    <span :class="{ 'reminder-picker-wrap': open }">
       <button v-if="!open"
               class="note-action-btn"
               @click="start"
               :title="hasReminder ? 'Edit reminder' : 'Set reminder'">
-        <i class="bi bi-bell"></i>
+        <i class="bi" :class="isRecurring ? 'bi-arrow-repeat' : 'bi-bell'"></i>
         <span class="d-none d-sm-inline">{{ hasReminder ? 'Edit reminder' : 'Reminder' }}</span>
       </button>
       <span v-else class="reminder-picker">
-        <input type="datetime-local" v-model="inputValue">
-        <button class="btn btn-sm btn-primary" @click="save">Save</button>
-        <button v-if="hasReminder" class="btn btn-sm btn-outline-danger" @click="clear">Clear</button>
-        <button class="btn btn-sm btn-outline-secondary" @click="cancel">Cancel</button>
+        <input type="datetime-local" v-model="inputValue" class="reminder-picker-input">
+        <select v-model="recurrenceValue" class="form-select form-select-sm reminder-picker-select">
+          <option value="none">Once</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+        <span class="reminder-picker-actions">
+          <button class="btn btn-sm btn-primary" @click="save">Save</button>
+          <button v-if="hasReminder" class="btn btn-sm btn-outline-danger" @click="clear">Clear</button>
+          <button class="btn btn-sm btn-outline-secondary" @click="cancel">Cancel</button>
+        </span>
       </span>
     </span>
   `

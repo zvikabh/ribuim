@@ -166,8 +166,8 @@ export default {
       }
     }
 
-    function onSetReminder(timestamp) {
-      setReminder(props.note.id, timestamp);
+    function onSetReminder(timestamp, recurrence) {
+      setReminder(props.note.id, timestamp, recurrence || "none");
     }
 
     function onClearReminder() {
@@ -205,7 +205,8 @@ export default {
              @blur="flushTitle">
 
       <ReminderBadge :reminder-at="note.reminderAt"
-                     :reminder-done="note.reminderDone" />
+                     :reminder-done="note.reminderDone"
+                     :reminder-recurrence="note.reminderRecurrence" />
 
       <ul ref="uncheckedListRef" class="checklist">
         <li v-for="item in uncheckedItems"
@@ -246,6 +247,7 @@ export default {
 
       <div class="note-actions">
         <ReminderPicker :reminder-at="note.reminderAt"
+                        :reminder-recurrence="note.reminderRecurrence"
                         @set="onSetReminder"
                         @clear="onClearReminder" />
         <button v-if="hasActiveReminder"

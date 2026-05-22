@@ -11,7 +11,8 @@ import {
   serverTimestamp,
   arrayUnion,
   arrayRemove,
-  deleteField
+  deleteField,
+  Timestamp
 } from "firebase/firestore";
 import { db } from "../firebase-init.js";
 import { useAuth } from "./useAuth.js";
@@ -104,11 +105,35 @@ async function createNote() {
     title: "",
     createdAt: serverTimestamp(),
     reminderAt: null,
+    reminderRecurrence: "none",
     reminderDone: false,
     items: {},
     itemOrder: []
   });
   return docRef.id;
+}
+
+// Returns the next occurrence of a recurring rule strictly after `now`.
+// `template` is the reference Date that carries the time-of-day (and weekday, for weekly).
+// Returns a Date or null for unsupported recurrence.
+function nextOccurrenceAfter(now, recurrence, template) {
+  if (!template) return null;
+  if (recurrence === "daily") {
+    const next = new Date(now);
+    next.setHours(template.getHours(), template.getMinutes(), 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next;
+  }
+  if (recurrence === "weekly") {
+    const next = new Date(now);
+    next.setHours(template.getHours(), template.getMinutes(), 0, 0);
+    const targetDay = template.getDay();
+    const daysAhead = (targetDay - next.getDay() + 7) % 7;
+    next.setDate(next.getDate() + daysAhead);
+    if (next <= now) next.setDate(next.getDate() + 7);
+    return next;
+  }
+  return null;
 }
 
 async function deleteNote(noteId) {
@@ -123,9 +148,24 @@ async function updateTitle(noteId, title) {
   }
 }
 
-async function setReminder(noteId, reminderAt) {
+// Normalizes the picked Timestamp for a recurring rule so the first stored
+// reminderAt is the next occurrence at or after now. One-shot reminders are
+// stored as the user picked them (a past one-shot just shows as overdue).
+function normalizeForRecurrence(reminderAt, recurrence) {
+  if (recurrence !== "daily" && recurrence !== "weekly") return reminderAt;
+  const picked = reminderAt && typeof reminderAt.toDate === "function"
+    ? reminderAt.toDate() : null;
+  if (!picked) return reminderAt;
+  const now = new Date();
+  if (picked > now) return reminderAt;
+  const next = nextOccurrenceAfter(now, recurrence, picked);
+  return next ? Timestamp.fromDate(next) : reminderAt;
+}
+
+async function setReminder(noteId, reminderAt, recurrence = "none") {
   await updateDoc(doc(db, "notes", noteId), {
-    reminderAt,
+    reminderAt: normalizeForRecurrence(reminderAt, recurrence),
+    reminderRecurrence: recurrence,
     reminderDone: false
   });
 }
@@ -133,12 +173,35 @@ async function setReminder(noteId, reminderAt) {
 async function clearReminder(noteId) {
   await updateDoc(doc(db, "notes", noteId), {
     reminderAt: null,
+    reminderRecurrence: "none",
     reminderDone: false
   });
 }
 
+// For one-shot reminders, sets reminderDone:true (dismissed permanently).
+// For recurring reminders, advances reminderAt to the next occurrence strictly
+// after max(now, current reminderAt). This makes Done idempotent for past-due
+// reminders ("next future slot") while still advancing one slot if pressed early.
 async function markReminderDone(noteId) {
-  await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
+  const note = notes.value.find(n => n.id === noteId);
+  const recurrence = note?.reminderRecurrence || "none";
+  if (recurrence === "none") {
+    await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
+    return;
+  }
+  const template = note?.reminderAt && typeof note.reminderAt.toDate === "function"
+    ? note.reminderAt.toDate() : null;
+  const now = new Date();
+  const reference = template && template.getTime() > now.getTime() ? template : now;
+  const next = nextOccurrenceAfter(reference, recurrence, template);
+  if (!next) {
+    await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
+    return;
+  }
+  await updateDoc(doc(db, "notes", noteId), {
+    reminderAt: Timestamp.fromDate(next),
+    reminderDone: false
+  });
 }
 
 async function addItem(noteId, label = "") {

@@ -23,7 +23,8 @@ function formatReminder(date) {
 export default {
   props: {
     reminderAt: { type: Object, default: null },
-    reminderDone: { type: Boolean, default: false }
+    reminderDone: { type: Boolean, default: false },
+    reminderRecurrence: { type: String, default: "none" }
   },
   setup(props) {
     const now = ref(Date.now());
@@ -44,13 +45,17 @@ export default {
 
     const display = computed(() => date.value ? formatReminder(date.value) : "");
 
-    return { date, colorClass, display };
+    const isRecurring = computed(() =>
+      props.reminderRecurrence === "daily" || props.reminderRecurrence === "weekly"
+    );
+
+    return { date, colorClass, display, isRecurring };
   },
   template: `
     <span v-if="date && !reminderDone"
           class="reminder-badge"
           :class="colorClass">
-      <i class="bi bi-bell"></i>
+      <i class="bi" :class="isRecurring ? 'bi-arrow-repeat' : 'bi-bell'"></i>
       <span>{{ display }}</span>
     </span>
   `

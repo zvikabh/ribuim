@@ -72,8 +72,9 @@ since email addresses are known in advance.
   ownerEmail: "alice@gmail.com",           // owner's email
   title: "",                              // optional, empty string if unset
   createdAt: Timestamp,                   // server timestamp, set once, immutable
-  reminderAt: Timestamp | null,           // null = no reminder
-  reminderDone: false,                    // true = reminder acknowledged
+  reminderAt: Timestamp | null,           // null = no reminder; otherwise the next un-completed due time
+  reminderRecurrence: "none"|"daily"|"weekly",  // recurrence rule (default "none")
+  reminderDone: false,                    // true = one-shot reminder dismissed; always false for recurring
 
   items: {                                // MAP of checkbox items
     "item_abc123": { label: "Milk", checked: false },
@@ -257,10 +258,27 @@ The badge re-evaluates its color every 60 seconds via `setInterval`.
 
 ### Marking a Reminder Done
 
-Sets `reminderDone: true` on the note. The original `reminderAt` is preserved so the
-user can see when it was set. The note moves from the "reminders" section to the
-"by creation date" section. The user can later set a new reminder (which sets a new
-`reminderAt` and resets `reminderDone: false`).
+For one-shot reminders (`reminderRecurrence === "none"`), sets `reminderDone: true`.
+The original `reminderAt` is preserved so the user can see when it was set. The note
+moves from the "reminders" section to the "by creation date" section. The user can
+later set a new reminder.
+
+For recurring reminders (`daily` or `weekly`), Done advances `reminderAt` to the next
+occurrence strictly after now (computed from `reminderAt`'s time-of-day, plus its
+weekday for weekly). `reminderDone` stays false — recurring reminders are never
+permanently "done", only acknowledged for the current occurrence.
+
+### Recurring Reminders
+
+- **Daily:** the time-of-day of `reminderAt` is the repeating slot. Done advances to
+  the next occurrence of that time-of-day after now.
+- **Weekly:** the weekday + time-of-day of `reminderAt` is the repeating slot. Done
+  advances by 7 days (or more if multiple weeks were skipped).
+- At creation, if the user picks a past datetime for a recurring reminder, the stored
+  `reminderAt` is normalized to the next occurrence after now (so the very first
+  reminder is in the future, not stale).
+- Sort order is unchanged — `sortedNotes` sorts by `reminderAt` ascending, so a
+  recurring reminder's overdue occurrence naturally floats to the top of the list.
 
 ---
 
