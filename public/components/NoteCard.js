@@ -21,10 +21,12 @@ export default {
       newItemId
     } = useNotes();
 
+    const MAX_VISIBLE = 7;
     const titleInputRef = ref(null);
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
     const pendingFocusId = ref(null);
+    const expanded = ref(false);
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -70,6 +72,36 @@ export default {
       return out;
     });
 
+    const totalItems = computed(() => uncheckedItems.value.length + checkedItems.value.length);
+    const shouldCollapse = computed(() => totalItems.value > MAX_VISIBLE);
+
+    const visibleUnchecked = computed(() => {
+      if (!shouldCollapse.value || expanded.value) return uncheckedItems.value;
+      return uncheckedItems.value.slice(0, MAX_VISIBLE);
+    });
+
+    const visibleChecked = computed(() => {
+      if (!shouldCollapse.value || expanded.value) return checkedItems.value;
+      return [];
+    });
+
+    const hiddenUnchecked = computed(() => uncheckedItems.value.length - visibleUnchecked.value.length);
+    const hiddenChecked = computed(() => checkedItems.value.length - visibleChecked.value.length);
+    const hiddenTotal = computed(() => hiddenUnchecked.value + hiddenChecked.value);
+
+    const collapseLabel = computed(() => {
+      const hu = hiddenUnchecked.value;
+      const hc = hiddenChecked.value;
+      if (hu > 0 && hc > 0) return `+ ${hu} unchecked and ${hc} checked items`;
+      if (hu > 0) return `+ ${hu} more items`;
+      if (hc > 0) return `+ ${hc} checked items`;
+      return "";
+    });
+
+    function toggleExpanded() {
+      expanded.value = !expanded.value;
+    }
+
     function setItemRef(itemId, instance) {
       if (instance) itemRefs.value[itemId] = instance;
       else delete itemRefs.value[itemId];
@@ -99,6 +131,10 @@ export default {
           newOrder = [...existingOrder];
           newOrder.splice(firstCheckedIdx, 0, newId);
         }
+      }
+
+      if (shouldCollapse.value && !expanded.value) {
+        expanded.value = true;
       }
 
       // Optimistic local mutation. We can't wait for the Firestore listener
@@ -156,9 +192,13 @@ export default {
     function onDragEnd() {
       if (!uncheckedListRef.value) return;
       const els = uncheckedListRef.value.querySelectorAll("[data-item-id]");
-      const newUncheckedOrder = Array.from(els).map(el => el.dataset.itemId);
+      const visibleIds = Array.from(els).map(el => el.dataset.itemId);
+      const visibleSet = new Set(visibleIds);
+      const hiddenIds = uncheckedItems.value
+        .filter(i => !visibleSet.has(i.id))
+        .map(i => i.id);
       const checkedIds = checkedItems.value.map(i => i.id);
-      const fullOrder = [...newUncheckedOrder, ...checkedIds];
+      const fullOrder = [...visibleIds, ...hiddenIds, ...checkedIds];
       setItemOrder(props.note.id, fullOrder);
     }
 
@@ -214,7 +254,8 @@ export default {
     return {
       titleInputRef, uncheckedListRef,
       localTitle, onTitleInput, flushTitle,
-      uncheckedItems, checkedItems,
+      visibleUnchecked, visibleChecked,
+      shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
       setItemRef, pendingFocusId,
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty,
@@ -238,7 +279,7 @@ export default {
                      :reminder-recurrence="note.reminderRecurrence" />
 
       <ul ref="uncheckedListRef" class="checklist">
-        <li v-for="item in uncheckedItems"
+        <li v-for="item in visibleUnchecked"
             :key="item.id"
             :data-item-id="item.id"
             class="checklist-item">
@@ -255,13 +296,20 @@ export default {
         </li>
       </ul>
 
+      <button v-if="shouldCollapse && !expanded && hiddenTotal > 0"
+              class="checklist-toggle"
+              @click="toggleExpanded">
+        <i class="bi bi-chevron-down"></i>
+        {{ collapseLabel }}
+      </button>
+
       <button class="add-item-row note-action-btn" @click="() => addNewItem()">
         <i class="bi bi-plus-lg add-item-icon"></i>
         <span>List item</span>
       </button>
 
-      <ul v-if="checkedItems.length" class="checklist checklist-done">
-        <li v-for="item in checkedItems"
+      <ul v-if="visibleChecked.length" class="checklist checklist-done">
+        <li v-for="item in visibleChecked"
             :key="item.id"
             :data-item-id="item.id"
             class="checklist-item is-checked">
@@ -274,6 +322,13 @@ export default {
             @delete="onItemDelete(item.id)" />
         </li>
       </ul>
+
+      <button v-if="shouldCollapse && expanded"
+              class="checklist-toggle"
+              @click="toggleExpanded">
+        <i class="bi bi-chevron-up"></i>
+        Show less
+      </button>
 
       <LabelChips :note-id="note.id" :labels="note.labels || []" />
 

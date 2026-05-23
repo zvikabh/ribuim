@@ -292,6 +292,29 @@ body {
   color: #d33;
 }
 
+/* Collapse/expand toggle */
+
+.checklist-toggle {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 0.82rem;
+  padding: 4px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.checklist-toggle:hover {
+  color: #202124;
+}
+
+.checklist-toggle .bi {
+  font-size: 0.75rem;
+}
+
 /* SortableJS ghost/drag states */
 .sortable-ghost {
   opacity: 0.4;
