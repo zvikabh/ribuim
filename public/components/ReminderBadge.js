@@ -12,12 +12,13 @@ function toDate(ts) {
 function formatReminder(date) {
   const now = new Date();
   const sameDay = date.toDateString() === now.toDateString();
+  const day = date.toLocaleDateString([], { weekday: "short" });
   const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (sameDay) return time;
+  if (sameDay) return day + " " + time;
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow " + time;
-  return date.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
+  if (date.toDateString() === tomorrow.toDateString()) return day + " Tomorrow " + time;
+  return day + " " + date.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
 }
 
 export default {
