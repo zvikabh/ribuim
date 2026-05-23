@@ -164,13 +164,19 @@ body {
 /* ---------- Card grid ---------- */
 
 .note-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
   gap: 12px;
   padding: 16px;
   max-width: 1600px;
   margin: 0 auto;
-  align-items: start;
+}
+
+.note-grid-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .note-card {
@@ -192,8 +198,10 @@ body {
 
 @media (max-width: 600px) {
   .note-grid {
-    grid-template-columns: 1fr;
     padding: 8px;
+    gap: 8px;
+  }
+  .note-grid-col {
     gap: 8px;
   }
 }
