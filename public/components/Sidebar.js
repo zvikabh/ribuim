@@ -1,9 +1,11 @@
 import { computed } from "vue";
 import { useView } from "../composables/useView.js";
+import { useImport } from "../composables/useImport.js";
 
 export default {
   setup() {
     const { currentView, sidebarOpen, allLabels, setView, closeSidebar } = useView();
+    const { showDialog: showImportDialog } = useImport();
 
     function isActive(view) {
       const c = currentView.value;
@@ -12,7 +14,15 @@ export default {
       return true;
     }
 
-    return { currentView, sidebarOpen, allLabels, setView, closeSidebar, isActive };
+    function openImport() {
+      showImportDialog();
+      closeSidebar();
+    }
+
+    return {
+      currentView, sidebarOpen, allLabels,
+      setView, closeSidebar, isActive, openImport
+    };
   },
   template: `
     <aside class="ribuim-sidebar" :class="{ open: sidebarOpen }" aria-label="Filters">
@@ -42,6 +52,12 @@ export default {
             <span>{{ label }}</span>
           </button>
         </template>
+
+        <div class="ribuim-sidebar-section">Tools</div>
+        <button class="ribuim-sidebar-item" @click="openImport">
+          <i class="bi bi-box-arrow-in-down"></i>
+          <span>Import from Google Keep</span>
+        </button>
       </nav>
     </aside>
 

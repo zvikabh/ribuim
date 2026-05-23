@@ -20,7 +20,8 @@ service cloud.firestore {
 
       allow create: if isAllowedUser()
         && request.resource.data.ownerEmail == request.auth.token.email
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt <= request.time;
 
       allow update: if isAllowedUser()
         && isOwner()

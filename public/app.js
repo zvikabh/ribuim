@@ -9,9 +9,10 @@ import NoteGrid from "./components/NoteGrid.js";
 import ReminderBanner from "./components/ReminderBanner.js";
 import ConfirmDialog from "./components/ConfirmDialog.js";
 import Sidebar from "./components/Sidebar.js";
+import ImportDialog from "./components/ImportDialog.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
@@ -61,6 +62,7 @@ const App = {
         <ReminderBanner />
         <NoteGrid />
       </main>
+      <ImportDialog />
     </template>
 
     <ConfirmDialog />
