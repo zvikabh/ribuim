@@ -164,21 +164,20 @@ body {
 /* ---------- Card grid ---------- */
 
 .note-grid {
-  columns: 280px;
-  column-gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
   padding: 16px;
   max-width: 1600px;
   margin: 0 auto;
+  align-items: start;
 }
 
 .note-card {
-  break-inside: avoid;
-  margin-bottom: 12px;
   background: var(--ribuim-card-bg);
   border: 1px solid var(--ribuim-border);
   border-radius: 8px;
   padding: 12px;
-  display: block;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.15s;
 }
@@ -193,11 +192,9 @@ body {
 
 @media (max-width: 600px) {
   .note-grid {
-    columns: 1;
+    grid-template-columns: 1fr;
     padding: 8px;
-  }
-  .note-card {
-    margin-bottom: 8px;
+    gap: 8px;
   }
 }
 
