@@ -3,8 +3,10 @@ import JSZip from "jszip";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../firebase-init.js";
 import { useAuth } from "./useAuth.js";
+import { useNotes } from "./useNotes.js";
 
 const { currentUser } = useAuth();
+const { notes: existingNotes } = useNotes();
 const dialogOpen = ref(false);
 const CONFIRM_THRESHOLD = 200;
 let pendingAllNotes = null;
@@ -85,6 +87,8 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
   const reminderMap = new Map();
   if (!tasksJson || !Array.isArray(tasksJson.items)) return reminderMap;
 
+  const now = new Date();
+
   const recById = new Map();
   for (const tl of tasksJson.items) {
     for (const rec of tl.recurrences || []) {
@@ -92,22 +96,37 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
     }
   }
 
-  // 1. Recurring reminders: find the most recent needsAction item per recurrence.
-  const recBestItem = new Map();
+  // 1. Recurring reminders.
+  // For each recurrence, find the best item to extract scheduled_time from:
+  //   - Prefer a needsAction item (the next upcoming instance).
+  //   - Fall back to the most recent completed item (to get the time of day).
+  // Many recurrences have ALL instances completed — skipping those would miss
+  // most recurring reminders.
+  const recBestItem = new Map(); // recurrence_id -> { start, title }
+
   for (const tl of tasksJson.items) {
     for (const item of tl.items || []) {
       const rid = item.task_recurrence_id;
-      if (!rid || item.status !== "needsAction") continue;
+      if (!rid) continue;
       const sched = (item.scheduled_time || []).find(s => s.current);
       if (!sched) continue;
       const existing = recBestItem.get(rid);
-      if (!existing || sched.start > existing.start) {
-        recBestItem.set(rid, { item, start: sched.start });
+      const isNA = item.status === "needsAction";
+      const existingIsNA = existing?.isNeedsAction;
+      // Prefer needsAction over completed; within same status, prefer most recent.
+      if (!existing ||
+          (isNA && !existingIsNA) ||
+          (isNA === existingIsNA && sched.start > existing.start)) {
+        recBestItem.set(rid, {
+          start: sched.start,
+          title: item.title || "",
+          isNeedsAction: isNA
+        });
       }
     }
   }
 
-  for (const [rid, { item, start }] of recBestItem) {
+  for (const [rid, best] of recBestItem) {
     const rec = recById.get(rid);
     if (!rec) continue;
     const interval = rec.schedule?.interval || {};
@@ -125,10 +144,9 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
       }
     }
 
-    const template = new Date(start);
+    const template = new Date(best.start);
     if (isNaN(template.getTime())) continue;
 
-    const now = new Date();
     let reminderAt;
     if (freq === "daily" || freq === "weekly") {
       const next = nextOccurrenceAfter(now, freq, template);
@@ -139,14 +157,21 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
       reminderAt = Timestamp.fromDate(template);
     }
 
-    const key = normalizeTitle(beforeDash(item.title || ""));
-    if (key) {
-      reminderMap.set(key, { reminderAt, reminderRecurrence: freq });
+    // Use the recurrence's own title (which is the full template) as well as
+    // the item title for matching. The recurrence title is often more complete.
+    const keyFromItem = normalizeTitle(beforeDash(best.title));
+    const keyFromRec = normalizeTitle(beforeDash(rec.title || ""));
+    const entry = { reminderAt, reminderRecurrence: freq };
+
+    if (keyFromItem && !reminderMap.has(keyFromItem)) {
+      reminderMap.set(keyFromItem, entry);
+    }
+    if (keyFromRec && keyFromRec !== keyFromItem && !reminderMap.has(keyFromRec)) {
+      reminderMap.set(keyFromRec, entry);
     }
   }
 
   // 2. One-shot reminders: needsAction, no recurrence, future scheduled_time.
-  const now = new Date();
   for (const tl of tasksJson.items) {
     for (const item of tl.items || []) {
       if (item.task_recurrence_id || item.status !== "needsAction") continue;
@@ -339,16 +364,28 @@ async function importFromFile(file) {
   }
 
   // ---- Compute filter counts ----
-  let cRem = 0, cLab = 0, cOr = 0;
+  // Build a set of normalized titles already in Firestore so we can offer
+  // a "missing only" filter for re-imports after a bugfix.
+  const existingTitleSet = new Set();
+  for (const n of existingNotes.value) {
+    const norm = normalizeTitle(n.title);
+    if (norm) existingTitleSet.add(norm);
+  }
+
+  let cRem = 0, cLab = 0, cOr = 0, cMissing = 0;
   for (const n of allNotes) {
     if (n.hasReminder) cRem++;
     if (n.hasLabels) cLab++;
     if (n.hasReminder || n.hasLabels) cOr++;
+    const norm = normalizeTitle(n.doc.title);
+    n.isMissing = n.hasReminder && (!norm || !existingTitleSet.has(norm));
+    if (n.isMissing) cMissing++;
   }
   state.value.filterCounts = {
     reminders: cRem,
     labels: cLab,
     labelsOrReminders: cOr,
+    missingReminders: cMissing,
     everything: allNotes.length
   };
 
@@ -363,6 +400,7 @@ function applyFilter(filterType) {
       case "reminders": return n.hasReminder;
       case "labels": return n.hasLabels;
       case "labels_or_reminders": return n.hasReminder || n.hasLabels;
+      case "missing_reminders": return n.isMissing;
       default: return true;
     }
   });

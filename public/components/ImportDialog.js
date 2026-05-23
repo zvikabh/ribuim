@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useImport } from "../composables/useImport.js";
 
 export default {
@@ -12,6 +12,13 @@ export default {
     const fileInputRef = ref(null);
     const selectedFile = ref(null);
     const selectedFilter = ref("labels_or_reminders");
+
+    // Auto-select "missing_reminders" when it appears (re-import scenario)
+    const stopFilterWatch = watch(() => state.value.filterCounts.missingReminders, (v) => {
+      if (v > 0 && state.value.phase === "filter_select") {
+        selectedFilter.value = "missing_reminders";
+      }
+    });
 
     function close() {
       selectedFile.value = null;
@@ -167,6 +174,16 @@ export default {
                   </div>
 
                   <div class="list-group">
+                    <label v-if="fc.missingReminders > 0"
+                           class="list-group-item d-flex gap-2 list-group-item-warning">
+                      <input type="radio" class="form-check-input flex-shrink-0"
+                             value="missing_reminders" v-model="selectedFilter">
+                      <span>
+                        <strong>Missing reminders only</strong>
+                        <span class="badge bg-warning text-dark ms-1">{{ fc.missingReminders }}</span>
+                        <br><small>Notes with reminders not yet in your data (for re-import after a fix).</small>
+                      </span>
+                    </label>
                     <label class="list-group-item d-flex gap-2">
                       <input type="radio" class="form-check-input flex-shrink-0"
                              value="reminders" v-model="selectedFilter">
