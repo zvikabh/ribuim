@@ -136,26 +136,80 @@ async function removeLabel(noteId, label) {
   }
 }
 
-// Returns the next occurrence of a recurring rule strictly after `now`.
-// `template` is the reference Date that carries the time-of-day (and weekday, for weekly).
-// Returns a Date or null for unsupported recurrence.
-function nextOccurrenceAfter(now, recurrence, template) {
+// Normalize legacy string values ("daily", "weekly") and new object rules
+// into a canonical object form, or null for non-recurring.
+function parseRecurrence(rec) {
+  if (!rec || rec === "none") return null;
+  if (rec === "daily") return { type: "days", interval: 1 };
+  if (rec === "weekly") return { type: "weeks", interval: 1 };
+  if (typeof rec === "object" && rec.type) return rec;
+  return null;
+}
+
+function isRecurring(rec) {
+  return !!parseRecurrence(rec);
+}
+
+// Returns the next occurrence of a recurring rule strictly after `reference`.
+// `template` carries the time-of-day (and base date for interval math).
+function nextOccurrenceAfter(reference, recurrence, template) {
   if (!template) return null;
-  if (recurrence === "daily") {
-    const next = new Date(now);
-    next.setHours(template.getHours(), template.getMinutes(), 0, 0);
-    if (next <= now) next.setDate(next.getDate() + 1);
+  const rule = parseRecurrence(recurrence);
+  if (!rule) return null;
+
+  const h = template.getHours(), m = template.getMinutes();
+
+  if (rule.type === "days") {
+    const n = rule.interval || 1;
+    if (n === 1) {
+      const next = new Date(reference);
+      next.setHours(h, m, 0, 0);
+      if (next <= reference) next.setDate(next.getDate() + 1);
+      return next;
+    }
+    const msPerDay = 86400000;
+    const tBase = new Date(template); tBase.setHours(h, m, 0, 0);
+    const diff = reference.getTime() - tBase.getTime();
+    const periods = diff < 0 ? 0 : Math.floor(diff / (n * msPerDay)) + 1;
+    const next = new Date(tBase.getTime() + periods * n * msPerDay);
+    next.setHours(h, m, 0, 0);
+    if (next <= reference) next.setDate(next.getDate() + n);
     return next;
   }
-  if (recurrence === "weekly") {
-    const next = new Date(now);
-    next.setHours(template.getHours(), template.getMinutes(), 0, 0);
+
+  if (rule.type === "weeks") {
+    const n = rule.interval || 1;
     const targetDay = template.getDay();
+    const next = new Date(reference);
+    next.setHours(h, m, 0, 0);
     const daysAhead = (targetDay - next.getDay() + 7) % 7;
     next.setDate(next.getDate() + daysAhead);
-    if (next <= now) next.setDate(next.getDate() + 7);
+    if (next <= reference) next.setDate(next.getDate() + 7);
+    if (n > 1) {
+      const tBase = new Date(template); tBase.setHours(h, m, 0, 0);
+      while (next > reference) {
+        const weeksDiff = Math.round((next.getTime() - tBase.getTime()) / (7 * 86400000));
+        if (weeksDiff >= 0 && weeksDiff % n === 0) break;
+        next.setDate(next.getDate() + 7);
+      }
+    }
     return next;
   }
+
+  if (rule.type === "weekdays") {
+    const days = rule.days;
+    if (!days || !days.length) return null;
+    const daysSet = new Set(days);
+    const next = new Date(reference);
+    next.setHours(h, m, 0, 0);
+    if (next <= reference) next.setDate(next.getDate() + 1);
+    for (let i = 0; i < 8; i++) {
+      if (daysSet.has(next.getDay())) return next;
+      next.setDate(next.getDate() + 1);
+    }
+    return null;
+  }
+
   return null;
 }
 
@@ -171,11 +225,8 @@ async function updateTitle(noteId, title) {
   }
 }
 
-// Normalizes the picked Timestamp for a recurring rule so the first stored
-// reminderAt is the next occurrence at or after now. One-shot reminders are
-// stored as the user picked them (a past one-shot just shows as overdue).
 function normalizeForRecurrence(reminderAt, recurrence) {
-  if (recurrence !== "daily" && recurrence !== "weekly") return reminderAt;
+  if (!isRecurring(recurrence)) return reminderAt;
   const picked = reminderAt && typeof reminderAt.toDate === "function"
     ? reminderAt.toDate() : null;
   if (!picked) return reminderAt;
@@ -185,10 +236,10 @@ function normalizeForRecurrence(reminderAt, recurrence) {
   return next ? Timestamp.fromDate(next) : reminderAt;
 }
 
-async function setReminder(noteId, reminderAt, recurrence = "none") {
+async function setReminder(noteId, reminderAt, recurrence = null) {
   await updateDoc(doc(db, "notes", noteId), {
     reminderAt: normalizeForRecurrence(reminderAt, recurrence),
-    reminderRecurrence: recurrence,
+    reminderRecurrence: recurrence || "none",
     reminderDone: false
   });
 }
@@ -201,14 +252,10 @@ async function clearReminder(noteId) {
   });
 }
 
-// For one-shot reminders, sets reminderDone:true (dismissed permanently).
-// For recurring reminders, advances reminderAt to the next occurrence strictly
-// after max(now, current reminderAt). This makes Done idempotent for past-due
-// reminders ("next future slot") while still advancing one slot if pressed early.
 async function markReminderDone(noteId) {
   const note = notes.value.find(n => n.id === noteId);
-  const recurrence = note?.reminderRecurrence || "none";
-  if (recurrence === "none") {
+  const recurrence = note?.reminderRecurrence;
+  if (!isRecurring(recurrence)) {
     await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
     return;
   }
@@ -301,6 +348,8 @@ export function useNotes() {
     setItemOrder,
     addLabel,
     removeLabel,
-    newItemId
+    newItemId,
+    parseRecurrence,
+    isRecurring
   };
 }

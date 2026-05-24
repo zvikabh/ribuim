@@ -1,6 +1,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useNotes } from "../composables/useNotes.js";
 
 const ONE_HOUR = 3600_000;
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function toDate(ts) {
   if (!ts) return null;
@@ -21,13 +23,29 @@ function formatReminder(date) {
   return day + " " + date.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
 }
 
+function describeRecurrence(rec) {
+  if (!rec || typeof rec !== "object") return "";
+  if (rec.type === "days") {
+    return rec.interval === 1 ? "Daily" : `Every ${rec.interval} days`;
+  }
+  if (rec.type === "weeks") {
+    return rec.interval === 1 ? "Weekly" : `Every ${rec.interval} weeks`;
+  }
+  if (rec.type === "weekdays" && rec.days?.length) {
+    return rec.days.sort((a, b) => a - b).map(d => DAY_NAMES[d]).join(", ");
+  }
+  return "";
+}
+
 export default {
   props: {
     reminderAt: { type: Object, default: null },
     reminderDone: { type: Boolean, default: false },
-    reminderRecurrence: { type: String, default: "none" }
+    reminderRecurrence: { default: "none" }
   },
   setup(props) {
+    const { parseRecurrence, isRecurring: isRecurringFn } = useNotes();
+
     const now = ref(Date.now());
     let timer = null;
     onMounted(() => { timer = setInterval(() => { now.value = Date.now(); }, 60_000); });
@@ -46,16 +64,20 @@ export default {
 
     const display = computed(() => date.value ? formatReminder(date.value) : "");
 
-    const isRecurring = computed(() =>
-      props.reminderRecurrence === "daily" || props.reminderRecurrence === "weekly"
-    );
+    const isRecurring = computed(() => isRecurringFn(props.reminderRecurrence));
 
-    return { date, colorClass, display, isRecurring };
+    const recLabel = computed(() => {
+      const rule = parseRecurrence(props.reminderRecurrence);
+      return rule ? describeRecurrence(rule) : "";
+    });
+
+    return { date, colorClass, display, isRecurring, recLabel };
   },
   template: `
     <span v-if="date && !reminderDone"
           class="reminder-badge"
-          :class="colorClass">
+          :class="colorClass"
+          :title="recLabel">
       <i class="bi" :class="isRecurring ? 'bi-arrow-repeat' : 'bi-bell'"></i>
       <span>{{ display }}</span>
     </span>

@@ -570,6 +570,61 @@ body {
 .reminder-picker-select {
   flex: 0 0 auto;
   width: auto;
+  flex-basis: 100%;
+}
+
+.rec-unit-select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.rec-interval-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.rec-interval-input {
+  width: 48px;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  border: 1px solid var(--ribuim-border);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.weekday-picker {
+  display: flex;
+  gap: 3px;
+}
+
+.weekday-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weekday-btn:hover {
+  background: #f1f3f4;
+}
+
+.weekday-btn.active {
+  background: var(--ribuim-accent);
+  border-color: var(--ribuim-accent);
+  color: #202124;
+  font-weight: 600;
 }
 
 .reminder-picker-actions {

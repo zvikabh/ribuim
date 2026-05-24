@@ -126,42 +126,42 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
     }
   }
 
+  const DAY_NAME_TO_NUM = {
+    SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3,
+    THURSDAY: 4, FRIDAY: 5, SATURDAY: 6
+  };
+
   for (const [rid, best] of recBestItem) {
     const rec = recById.get(rid);
     if (!rec) continue;
     const interval = rec.schedule?.interval || {};
-    let freq = "none";
-    if (interval.daily) freq = "daily";
-    else if (interval.weekly) freq = "weekly";
+    const mult = interval.interval_multiplier || 1;
 
-    if ((interval.interval_multiplier || 1) > 1) {
-      unsupportedFeatures.add("bi-weekly or other interval multipliers");
-    }
-    if (freq === "weekly") {
-      const days = interval.weekly?.day_of_week || [];
-      if (days.length > 1) {
-        unsupportedFeatures.add("multi-day weekly recurrences (only first day imported)");
+    let recRule = null;
+    if (interval.daily) {
+      recRule = { type: "days", interval: mult };
+    } else if (interval.weekly) {
+      const dayNames = interval.weekly?.day_of_week || [];
+      const dayNums = dayNames.map(d => DAY_NAME_TO_NUM[d]).filter(d => d !== undefined);
+      if (dayNums.length > 1 && mult === 1) {
+        recRule = { type: "weekdays", days: dayNums.sort((a, b) => a - b) };
+      } else {
+        recRule = { type: "weeks", interval: mult };
       }
     }
+
+    if (!recRule) continue;
 
     const template = new Date(best.start);
     if (isNaN(template.getTime())) continue;
 
-    let reminderAt;
-    if (freq === "daily" || freq === "weekly") {
-      const next = nextOccurrenceAfter(now, freq, template);
-      if (!next) continue;
-      reminderAt = Timestamp.fromDate(next);
-    } else {
-      if (template <= now) continue;
-      reminderAt = Timestamp.fromDate(template);
-    }
+    const next = nextOccurrenceAfter(now, recRule, template);
+    if (!next) continue;
+    const reminderAt = Timestamp.fromDate(next);
 
-    // Use the recurrence's own title (which is the full template) as well as
-    // the item title for matching. The recurrence title is often more complete.
     const keyFromItem = normalizeTitle(beforeDash(best.title));
     const keyFromRec = normalizeTitle(beforeDash(rec.title || ""));
-    const entry = { reminderAt, reminderRecurrence: freq };
+    const entry = { reminderAt, reminderRecurrence: recRule };
 
     if (keyFromItem && !reminderMap.has(keyFromItem)) {
       reminderMap.set(keyFromItem, entry);
@@ -183,7 +183,7 @@ function parseTasksReminders(tasksJson, unsupportedFeatures) {
       if (key && !reminderMap.has(key)) {
         reminderMap.set(key, {
           reminderAt: Timestamp.fromDate(dt),
-          reminderRecurrence: "none"
+          reminderRecurrence: null
         });
       }
     }
