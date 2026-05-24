@@ -221,10 +221,19 @@ async function markReminderDone(noteId) {
     await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
     return;
   }
-  await updateDoc(doc(db, "notes", noteId), {
+  const update = {
     reminderAt: Timestamp.fromDate(next),
     reminderDone: false
-  });
+  };
+  const items = note?.items;
+  if (items && typeof items === "object") {
+    for (const itemId of Object.keys(items)) {
+      if (items[itemId]?.checked) {
+        update[`items.${itemId}.checked`] = false;
+      }
+    }
+  }
+  await updateDoc(doc(db, "notes", noteId), update);
 }
 
 async function addItem(noteId, label = "") {
