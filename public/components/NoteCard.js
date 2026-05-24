@@ -52,6 +52,40 @@ export default {
       titleTimer = setTimeout(flushTitle, 500);
     }
 
+    async function onTitleKeydown(e) {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      flushTitle();
+
+      const firstUnchecked = uncheckedItems.value[0];
+      if (firstUnchecked) {
+        // Insert a new item before the first unchecked item
+        const noteId = props.note.id;
+        const existingOrder = props.note.itemOrder || [];
+        const newId = newItemId();
+        const idx = existingOrder.indexOf(firstUnchecked.id);
+        const newOrder = [...existingOrder];
+        newOrder.splice(idx === -1 ? 0 : idx, 0, newId);
+
+        pendingFocusId.value = newId;
+
+        const noteIdx = notes.value.findIndex(n => n.id === noteId);
+        if (noteIdx !== -1) {
+          const oldNote = notes.value[noteIdx];
+          notes.value[noteIdx] = {
+            ...oldNote,
+            items: { ...(oldNote.items || {}), [newId]: { label: "", checked: false } },
+            itemOrder: newOrder
+          };
+        }
+        insertItem(noteId, "", newOrder, newId).catch(err => {
+          if (err && err.code !== "not-found") console.error(err);
+        });
+      } else {
+        await addNewItem();
+      }
+    }
+
     const uncheckedItems = computed(() => {
       const order = props.note.itemOrder || [];
       const items = props.note.items || {};
@@ -253,7 +287,7 @@ export default {
 
     return {
       titleInputRef, uncheckedListRef,
-      localTitle, onTitleInput, flushTitle,
+      localTitle, onTitleInput, onTitleKeydown, flushTitle,
       visibleUnchecked, visibleChecked,
       shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
       setItemRef, pendingFocusId,
@@ -272,6 +306,7 @@ export default {
              placeholder="Title"
              :value="localTitle"
              @input="onTitleInput"
+             @keydown="onTitleKeydown"
              @blur="flushTitle">
 
       <ReminderBadge :reminder-at="note.reminderAt"
