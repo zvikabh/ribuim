@@ -16,7 +16,23 @@ function toLocalInputValue(date) {
     + pad(date.getMinutes());
 }
 
-function defaultReminderInputValue() {
+function timeHintFromTitle(title) {
+  const t = (title || "").trim();
+  if (/בבוקר$/.test(t) || /מוקדם$/.test(t)) return { h: 8, m: 0 };
+  if (/אחה[״""]צ$/.test(t) || /אחהצ$/.test(t)) return { h: 17, m: 0 };
+  if (/בערב$/.test(t)) return { h: 20, m: 0 };
+  if (/בצהריים$/.test(t)) return { h: 12, m: 0 };
+  return null;
+}
+
+function defaultReminderInputValue(title) {
+  const hint = timeHintFromTitle(title);
+  if (hint) {
+    const d = new Date();
+    d.setHours(hint.h, hint.m, 0, 0);
+    if (d <= new Date()) d.setDate(d.getDate() + 1);
+    return toLocalInputValue(d);
+  }
   const d = new Date();
   d.setHours(d.getHours() + 1, 0, 0, 0);
   return toLocalInputValue(d);
@@ -25,7 +41,8 @@ function defaultReminderInputValue() {
 export default {
   props: {
     reminderAt: { type: Object, default: null },
-    reminderRecurrence: { default: "none" }
+    reminderRecurrence: { default: "none" },
+    noteTitle: { type: String, default: "" }
   },
   emits: ["set", "clear", "cancel"],
   setup(props, { emit }) {
@@ -59,7 +76,7 @@ export default {
     function start() {
       const d = props.reminderAt && typeof props.reminderAt.toDate === "function"
         ? props.reminderAt.toDate() : null;
-      inputValue.value = d ? toLocalInputValue(d) : defaultReminderInputValue();
+      inputValue.value = d ? toLocalInputValue(d) : defaultReminderInputValue(props.noteTitle);
 
       const rule = parseRecurrence(props.reminderRecurrence);
       if (!rule) {

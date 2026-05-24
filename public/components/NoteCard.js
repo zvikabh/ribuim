@@ -335,6 +335,7 @@ export default {
       <div class="note-actions">
         <ReminderPicker :reminder-at="note.reminderAt"
                         :reminder-recurrence="note.reminderRecurrence"
+                        :note-title="note.title"
                         @set="onSetReminder"
                         @clear="onClearReminder" />
         <button v-if="hasActiveReminder"
