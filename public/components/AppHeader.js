@@ -14,6 +14,7 @@ export default {
               title="Menu">
         <i class="bi bi-list"></i>
       </button>
+      <img src="/ribuim.png" alt="" class="ribuim-logo-icon">
       <div class="ribuim-logo">Ribu<span class="ribuim-logo-accent">im</span></div>
       <div class="ribuim-view-label d-none d-md-inline">{{ currentViewLabel }}</div>
       <div class="ribuim-header-spacer"></div>
