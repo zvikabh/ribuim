@@ -48,10 +48,12 @@ export default {
     }
 
     function onKeydown(e) {
-      if (e.key === "Enter") {
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         flush();
         emit("enter-pressed");
+      } else if (e.key === "Enter" && e.shiftKey) {
+        nextTick(autoResize);
       } else if (e.key === "Backspace" && localLabel.value === "") {
         e.preventDefault();
         emit("backspace-empty");
