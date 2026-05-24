@@ -107,6 +107,7 @@ async function createNote() {
     reminderAt: null,
     reminderRecurrence: "none",
     reminderDone: false,
+    reminderDismissed: false,
     items: {},
     itemOrder: [],
     labels: []
@@ -240,8 +241,17 @@ async function setReminder(noteId, reminderAt, recurrence = null) {
   await updateDoc(doc(db, "notes", noteId), {
     reminderAt: normalizeForRecurrence(reminderAt, recurrence),
     reminderRecurrence: recurrence || "none",
-    reminderDone: false
+    reminderDone: false,
+    reminderDismissed: false
   });
+}
+
+async function dismissReminder(noteId) {
+  try {
+    await updateDoc(doc(db, "notes", noteId), { reminderDismissed: true });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
 }
 
 async function clearReminder(noteId) {
@@ -270,7 +280,8 @@ async function markReminderDone(noteId) {
   }
   const update = {
     reminderAt: Timestamp.fromDate(next),
-    reminderDone: false
+    reminderDone: false,
+    reminderDismissed: false
   };
   const items = note?.items;
   if (items && typeof items === "object") {
@@ -339,6 +350,7 @@ export function useNotes() {
     updateTitle,
     setReminder,
     clearReminder,
+    dismissReminder,
     markReminderDone,
     addItem,
     insertItem,

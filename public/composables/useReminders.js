@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
 import { useNotes } from "./useNotes.js";
 
-const { notes, markReminderDone } = useNotes();
+const { notes, markReminderDone, dismissReminder } = useNotes();
 
 const activeBanners = ref([]);
 const notifiedNoteIds = new Set();
@@ -24,6 +24,7 @@ function checkDueReminders() {
     const due = toMs(note.reminderAt);
     if (!due) continue;
     if (note.reminderDone) continue;
+    if (note.reminderDismissed) continue;
     if (due > now) continue;
     if (notifiedNoteIds.has(note.id)) continue;
 
@@ -58,7 +59,7 @@ watch(notes, (current) => {
   }
   for (const note of current) {
     const due = toMs(note.reminderAt);
-    if (!due || note.reminderDone || due > Date.now()) {
+    if (!due || note.reminderDone || note.reminderDismissed || due > Date.now()) {
       if (notifiedNoteIds.has(note.id)) {
         notifiedNoteIds.delete(note.id);
       }
@@ -68,6 +69,7 @@ watch(notes, (current) => {
     const note = current.find(n => n.id === b.id);
     if (!note) return false;
     if (note.reminderDone) return false;
+    if (note.reminderDismissed) return false;
     if (!note.reminderAt) return false;
     return true;
   });
@@ -77,8 +79,9 @@ watch(notes, (current) => {
 
 setInterval(checkDueReminders, CHECK_INTERVAL_MS);
 
-function dismissBanner(noteId) {
+async function dismissBanner(noteId) {
   activeBanners.value = activeBanners.value.filter(b => b.id !== noteId);
+  await dismissReminder(noteId);
 }
 
 async function bannerMarkDone(noteId) {
