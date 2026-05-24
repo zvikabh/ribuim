@@ -1,4 +1,4 @@
-import { ref, watch, onBeforeUnmount, onMounted } from "vue";
+import { ref, watch, onBeforeUnmount, onMounted, nextTick } from "vue";
 
 export default {
   props: {
@@ -13,9 +13,17 @@ export default {
     const dirty = ref(false);
     let timer = null;
 
+    function autoResize() {
+      const el = inputRef.value;
+      if (!el) return;
+      el.style.height = "0";
+      el.style.height = el.scrollHeight + "px";
+    }
+
     watch(() => props.label, (newVal) => {
       if (!dirty.value) {
         localLabel.value = newVal;
+        nextTick(autoResize);
       }
     });
 
@@ -30,6 +38,7 @@ export default {
     function onInput(e) {
       localLabel.value = e.target.value;
       dirty.value = true;
+      autoResize();
       if (timer) clearTimeout(timer);
       timer = setTimeout(flush, 500);
     }
@@ -58,6 +67,7 @@ export default {
     }
 
     onMounted(() => {
+      autoResize();
       if (props.autofocus && inputRef.value) {
         inputRef.value.focus();
       }
@@ -78,14 +88,14 @@ export default {
            class="form-check-input checklist-checkbox"
            :checked="checked"
            @change="toggle">
-    <input ref="inputRef"
-           type="text"
-           class="ribuim-input item-label-input"
-           :value="localLabel"
-           @input="onInput"
-           @blur="onBlur"
-           @keydown="onKeydown"
-           placeholder="">
+    <textarea ref="inputRef"
+              rows="1"
+              class="ribuim-input item-label-input"
+              :value="localLabel"
+              @input="onInput"
+              @blur="onBlur"
+              @keydown="onKeydown"
+              placeholder=""></textarea>
     <button class="checklist-delete"
             @click="$emit('delete')"
             title="Delete item">

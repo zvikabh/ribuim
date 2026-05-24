@@ -251,10 +251,15 @@ body {
 
 .checklist-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   padding: 2px 0;
   cursor: default;
+}
+
+.checklist-item .checklist-checkbox,
+.checklist-item .checklist-drag-handle {
+  margin-top: 4px;
 }
 
 .checklist-item.is-checked .item-label-input {
@@ -284,6 +289,10 @@ body {
 .item-label-input {
   flex: 1;
   min-width: 0;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  font-family: inherit;
 }
 
 .checklist-delete {
