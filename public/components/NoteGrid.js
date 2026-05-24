@@ -1,4 +1,4 @@
-import { ref, computed, watch, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import NoteCard from "./NoteCard.js";
@@ -48,6 +48,17 @@ export default {
       return cols;
     });
 
+    function scrollToAndHighlight(noteId) {
+      const el = gridRef.value?.querySelector(`[data-note-id="${noteId}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const card = el.querySelector(".note-card") || el;
+      card.classList.add("note-card-highlight");
+      card.addEventListener("animationend", () => {
+        card.classList.remove("note-card-highlight");
+      }, { once: true });
+    }
+
     async function handleCreate() {
       const view = currentView.value;
       const id = await createNote();
@@ -57,6 +68,8 @@ export default {
       } else if (view.type !== "all") {
         setView({ type: "all" });
       }
+      await nextTick();
+      setTimeout(() => scrollToAndHighlight(id), 150);
     }
 
     return {
@@ -84,7 +97,9 @@ export default {
 
       <div v-else ref="gridRef" class="note-grid">
         <div v-for="(col, ci) in columns" :key="ci" class="note-grid-col">
-          <NoteCard v-for="note in col" :key="note.id" :note="note" />
+          <div v-for="note in col" :key="note.id" :data-note-id="note.id">
+            <NoteCard :note="note" />
+          </div>
         </div>
       </div>
 
