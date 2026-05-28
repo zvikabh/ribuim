@@ -16,7 +16,8 @@ service cloud.firestore {
     }
 
     match /notes/{noteId} {
-      allow read: if isAllowedUser() && isOwner();
+      allow read: if isAllowedUser()
+        && (isOwner() || request.auth.token.email in resource.data.sharedWith);
 
       allow create: if isAllowedUser()
         && request.resource.data.ownerEmail == request.auth.token.email
@@ -24,7 +25,7 @@ service cloud.firestore {
         && request.resource.data.createdAt <= request.time;
 
       allow update: if isAllowedUser()
-        && isOwner()
+        && (isOwner() || request.auth.token.email in resource.data.sharedWith)
         && request.resource.data.ownerEmail == resource.data.ownerEmail
         && request.resource.data.createdAt == resource.data.createdAt;
 
@@ -32,8 +33,7 @@ service cloud.firestore {
     }
 
     match /userPreferences/{email} {
-      allow read: if isAllowedUser()
-        && request.auth.token.email == email;
+      allow read: if isAllowedUser();
       allow create, update: if isAllowedUser()
         && request.auth.token.email == email;
       allow delete: if false;

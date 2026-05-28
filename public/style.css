@@ -510,7 +510,11 @@ body {
 }
 
 .note-card[dir="rtl"] .note-labels {
-  direction: rtl;
+  direction: ltr;
+}
+
+.note-card[dir="rtl"] .shared-with-list {
+  direction: ltr;
 }
 
 /* ---------- Labels ---------- */
@@ -903,4 +907,155 @@ body {
 
 .pref-swatch:first-child {
   margin-left: 0;
+}
+
+/* ---------- Share dialog ---------- */
+
+.share-input-wrap {
+  position: relative;
+}
+
+.share-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid var(--ribuim-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.share-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.share-suggestion:hover {
+  background: #f5f5f5;
+}
+
+.share-suggestion-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.share-suggestion-name {
+  font-size: 0.9rem;
+  color: #202124;
+}
+.share-suggestion-email {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.share-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.share-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.share-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e0e0;
+  color: #555;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.share-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.share-list-item:last-child {
+  border-bottom: none;
+}
+
+.share-list-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.share-list-name {
+  font-size: 0.9rem;
+  color: #202124;
+}
+.share-list-email {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+/* ---------- Shared with (on note card) ---------- */
+
+.shared-with-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.shared-with-label {
+  margin-right: 2px;
+}
+
+.shared-with-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f3f4;
+  border-radius: 12px;
+  padding: 2px 8px 2px 2px;
+}
+
+.shared-with-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.shared-with-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #d0d0d0;
+  color: #555;
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.shared-with-name {
+  font-size: 0.75rem;
+  color: #444;
+  white-space: nowrap;
 }

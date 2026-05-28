@@ -7,6 +7,7 @@ function viewFromHash() {
   const hash = location.hash.replace(/^#\/?/, "");
   if (!hash || hash === "all") return { type: "all" };
   if (hash === "reminders") return { type: "reminders" };
+  if (hash === "shared") return { type: "shared" };
   if (hash === "trash") return { type: "trash" };
   if (hash.startsWith("label/")) {
     const label = decodeURIComponent(hash.slice(6));
@@ -17,6 +18,7 @@ function viewFromHash() {
 
 function hashFromView(v) {
   if (v.type === "reminders") return "#reminders";
+  if (v.type === "shared") return "#shared";
   if (v.type === "trash") return "#trash";
   if (v.type === "label") return "#label/" + encodeURIComponent(v.value);
   return "#all";
@@ -59,8 +61,9 @@ const filteredNotes = computed(() => {
   const v = currentView.value;
   let list;
   if (v.type === "trash") list = trashedNotes.value;
-  else if (v.type === "reminders") list = sortedNotes.value.filter(n => n.reminderAt && !n.reminderDone);
-  else if (v.type === "label") list = sortedNotes.value.filter(n => (n.labels || []).includes(v.value));
+  else if (v.type === "reminders") list = sortedNotes.value.filter(n => n._isOwner && n.reminderAt && !n.reminderDone);
+  else if (v.type === "shared") list = sortedNotes.value.filter(n => !n._isOwner);
+  else if (v.type === "label") list = sortedNotes.value.filter(n => n._isOwner && (n.labels || []).includes(v.value));
   else list = sortedNotes.value;
 
   const q = searchQuery.value.trim().toLowerCase();
@@ -72,6 +75,7 @@ const currentViewLabel = computed(() => {
   const v = currentView.value;
   if (v.type === "all") return "All notes";
   if (v.type === "reminders") return "Reminders";
+  if (v.type === "shared") return "Shared with you";
   if (v.type === "trash") return "Trash";
   if (v.type === "label") return "#" + v.value;
   return "";

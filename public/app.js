@@ -12,9 +12,10 @@ import ConfirmDialog from "./components/ConfirmDialog.js";
 import Sidebar from "./components/Sidebar.js";
 import ImportDialog from "./components/ImportDialog.js";
 import PreferencesDialog from "./components/PreferencesDialog.js";
+import ShareDialog from "./components/ShareDialog.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog, ShareDialog },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
@@ -71,6 +72,7 @@ const App = {
       </main>
       <ImportDialog />
       <PreferencesDialog />
+      <ShareDialog />
     </template>
 
     <ConfirmDialog />

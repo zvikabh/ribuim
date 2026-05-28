@@ -7,9 +7,11 @@ import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
 import LabelChips from "./LabelChips.js";
 import HighlightText from "./HighlightText.js";
+import SharedWithList from "./SharedWithList.js";
+import { openShareDialog } from "./ShareDialog.js";
 
 export default {
-  components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips, HighlightText },
+  components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips, HighlightText, SharedWithList },
   props: {
     note: { type: Object, required: true }
   },
@@ -259,6 +261,11 @@ export default {
 
     const { currentView, searchQuery } = useView();
     const isTrashed = computed(() => !!props.note.trashedAt);
+    const isOwner = computed(() => props.note._isOwner !== false);
+
+    function onShare() {
+      openShareDialog(props.note);
+    }
 
     function onTrash() {
       trashNote(props.note.id);
@@ -304,9 +311,9 @@ export default {
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty,
       addNewItem,
-      isTrashed, onTrash, onRestore, onDeletePermanently,
+      isTrashed, isOwner, onTrash, onRestore, onDeletePermanently,
       onSetReminder, onClearReminder, onMarkReminderDone,
-      hasActiveReminder, searchQuery
+      hasActiveReminder, searchQuery, onShare
     };
   },
   template: `
@@ -323,7 +330,8 @@ export default {
              @keydown="onTitleKeydown"
              @blur="flushTitle">
 
-      <ReminderBadge :reminder-at="note.reminderAt"
+      <ReminderBadge v-if="isOwner"
+                     :reminder-at="note.reminderAt"
                      :reminder-done="note.reminderDone"
                      :reminder-recurrence="note.reminderRecurrence" />
 
@@ -381,7 +389,9 @@ export default {
         Show less
       </button>
 
-      <LabelChips :note-id="note.id" :labels="note.labels || []" />
+      <LabelChips v-if="isOwner" :note-id="note.id" :labels="note.labels || []" />
+
+      <SharedWithList v-if="isOwner" :shared-with="note.sharedWith || []" />
 
       <div v-if="isTrashed" class="note-actions" dir="ltr">
         <button class="note-action-btn"
@@ -399,20 +409,29 @@ export default {
         </button>
       </div>
       <div v-else class="note-actions" dir="ltr">
-        <ReminderPicker :reminder-at="note.reminderAt"
+        <ReminderPicker v-if="isOwner"
+                        :reminder-at="note.reminderAt"
                         :reminder-recurrence="note.reminderRecurrence"
                         :note-title="note.title"
                         @set="onSetReminder"
                         @clear="onClearReminder" />
-        <button v-if="hasActiveReminder"
+        <button v-if="isOwner && hasActiveReminder"
                 class="note-action-btn"
                 @click="onMarkReminderDone"
                 title="Mark reminder done">
           <i class="bi bi-check2"></i>
           <span class="d-none d-sm-inline">Done</span>
         </button>
+        <button v-if="isOwner"
+                class="note-action-btn"
+                @click="onShare"
+                title="Share note">
+          <i class="bi bi-people"></i>
+          <span class="d-none d-sm-inline">Share</span>
+        </button>
         <span class="ms-auto"></span>
-        <button class="note-action-btn danger"
+        <button v-if="isOwner"
+                class="note-action-btn danger"
                 @click="onTrash"
                 title="Move to trash">
           <i class="bi bi-trash"></i>

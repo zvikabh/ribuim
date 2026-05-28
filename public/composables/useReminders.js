@@ -23,6 +23,7 @@ function toMs(ts) {
 function checkDueReminders() {
   const now = Date.now();
   for (const note of notes.value) {
+    if (!note._isOwner) continue;
     const due = toMs(note.reminderAt);
     if (!due) continue;
     if (note.reminderDone) continue;
@@ -80,6 +81,38 @@ watch(notes, (current) => {
 }, { deep: true });
 
 setInterval(checkDueReminders, CHECK_INTERVAL_MS);
+
+// ---------- Shared note notifications ----------
+
+const knownSharedIds = new Set();
+let sharedInitialized = false;
+
+watch(notes, (current) => {
+  const sharedNotes = current.filter(n => !n._isOwner && !n.trashedAt);
+  if (!sharedInitialized) {
+    for (const n of sharedNotes) knownSharedIds.add(n.id);
+    sharedInitialized = true;
+    return;
+  }
+  for (const note of sharedNotes) {
+    if (knownSharedIds.has(note.id)) continue;
+    knownSharedIds.add(note.id);
+    const title = note.title || "(untitled note)";
+    if (typeof Notification !== "undefined" &&
+        Notification.permission === "granted") {
+      try {
+        new Notification("Ribuim", {
+          body: `A note was shared with you: ${title}`,
+          icon: "/ribuim.png",
+          tag: "ribuim-shared-" + note.id
+        });
+      } catch (err) { /* ignore */ }
+    }
+  }
+  for (const id of [...knownSharedIds]) {
+    if (!sharedNotes.find(n => n.id === id)) knownSharedIds.delete(id);
+  }
+}, { deep: true });
 
 // ---------- Favicon badge ----------
 

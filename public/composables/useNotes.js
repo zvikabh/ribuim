@@ -23,51 +23,76 @@ const notes = ref([]);
 const loading = ref(false);
 const accessDenied = ref(false);
 
-let unsubscribeListener = null;
+let unsubOwned = null;
+let unsubShared = null;
+const ownedNotes = new Map();
+const sharedNotes = new Map();
 
-function applyDocChanges(snapshot) {
+function mergeNotes(email) {
+  const merged = [];
+  for (const [id, data] of ownedNotes) {
+    merged.push({ ...data, id, _isOwner: true });
+  }
+  for (const [id, data] of sharedNotes) {
+    if (!ownedNotes.has(id)) {
+      merged.push({ ...data, id, _isOwner: false });
+    }
+  }
+  notes.value = merged;
+}
+
+function applyDocChanges(map, snapshot, email) {
   snapshot.docChanges().forEach((change) => {
-    const data = { id: change.doc.id, ...change.doc.data() };
-    if (change.type === "added") {
-      const idx = notes.value.findIndex(n => n.id === data.id);
-      if (idx === -1) notes.value.push(data);
-      else notes.value[idx] = data;
-    } else if (change.type === "modified") {
-      const idx = notes.value.findIndex(n => n.id === data.id);
-      if (idx !== -1) notes.value[idx] = data;
-      else notes.value.push(data);
-    } else if (change.type === "removed") {
-      notes.value = notes.value.filter(n => n.id !== data.id);
+    const data = change.doc.data();
+    if (change.type === "removed") {
+      map.delete(change.doc.id);
+    } else {
+      map.set(change.doc.id, data);
     }
   });
+  mergeNotes(email);
 }
 
 function startListener(email) {
   stopListener();
   loading.value = true;
   accessDenied.value = false;
-  const q = query(collection(db, "notes"), where("ownerEmail", "==", email));
-  unsubscribeListener = onSnapshot(q,
+  let ownedReady = false, sharedReady = false;
+
+  const q1 = query(collection(db, "notes"), where("ownerEmail", "==", email));
+  unsubOwned = onSnapshot(q1,
     (snapshot) => {
-      applyDocChanges(snapshot);
-      loading.value = false;
+      applyDocChanges(ownedNotes, snapshot, email);
+      ownedReady = true;
+      if (ownedReady && sharedReady) loading.value = false;
     },
     (error) => {
       loading.value = false;
-      if (error.code === "permission-denied") {
-        accessDenied.value = true;
-      } else {
-        console.error("Notes listener error:", error);
-      }
+      if (error.code === "permission-denied") accessDenied.value = true;
+      else console.error("Owned notes listener error:", error);
+    }
+  );
+
+  const q2 = query(collection(db, "notes"), where("sharedWith", "array-contains", email));
+  unsubShared = onSnapshot(q2,
+    (snapshot) => {
+      applyDocChanges(sharedNotes, snapshot, email);
+      sharedReady = true;
+      if (ownedReady && sharedReady) loading.value = false;
+    },
+    (error) => {
+      console.warn("Shared notes listener error:", error);
+      sharedReady = true;
+      if (ownedReady && sharedReady) loading.value = false;
     }
   );
 }
 
 function stopListener() {
-  if (unsubscribeListener) {
-    unsubscribeListener();
-    unsubscribeListener = null;
-  }
+  if (unsubOwned) { unsubOwned(); unsubOwned = null; }
+  if (unsubShared) { unsubShared(); unsubShared = null; }
+  ownedNotes.clear();
+  sharedNotes.clear();
   notes.value = [];
 }
 
@@ -120,9 +145,32 @@ async function createNote() {
     notificationSent: false,
     items: {},
     itemOrder: [],
-    labels: []
+    labels: [],
+    sharedWith: []
   });
   return docRef.id;
+}
+
+async function shareNote(noteId, email) {
+  const trimmed = (email || "").trim().toLowerCase();
+  if (!trimmed) return;
+  try {
+    await updateDoc(doc(db, "notes", noteId), {
+      sharedWith: arrayUnion(trimmed)
+    });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
+}
+
+async function unshareNote(noteId, email) {
+  try {
+    await updateDoc(doc(db, "notes", noteId), {
+      sharedWith: arrayRemove(email)
+    });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
 }
 
 async function addLabel(noteId, label) {
@@ -387,6 +435,8 @@ export function useNotes() {
     setItemOrder,
     addLabel,
     removeLabel,
+    shareNote,
+    unshareNote,
     newItemId,
     parseRecurrence,
     isRecurring

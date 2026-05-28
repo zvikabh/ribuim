@@ -49,6 +49,13 @@ export default {
         </button>
 
         <button class="ribuim-sidebar-item"
+                :class="{ active: isActive({ type: 'shared' }) }"
+                @click="setView({ type: 'shared' })">
+          <i class="bi bi-people"></i>
+          <span>Shared with you</span>
+        </button>
+
+        <button class="ribuim-sidebar-item"
                 :class="{ active: isActive({ type: 'trash' }) }"
                 @click="setView({ type: 'trash' })">
           <i class="bi bi-trash"></i>
