@@ -127,9 +127,10 @@ export default {
     const collapseLabel = computed(() => {
       const hu = hiddenUnchecked.value;
       const hc = hiddenChecked.value;
-      if (hu > 0 && hc > 0) return `+ ${hu} unchecked and ${hc} checked items`;
-      if (hu > 0) return `+ ${hu} more items`;
-      if (hc > 0) return `+ ${hc} checked items`;
+      const LRM = "\u200e";
+      if (hu > 0 && hc > 0) return `${LRM}+ ${hu} unchecked and ${hc} checked items`;
+      if (hu > 0) return `${LRM}+ ${hu} more items`;
+      if (hc > 0) return `${LRM}+ ${hc} checked items`;
       return "";
     });
 
