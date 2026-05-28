@@ -43,6 +43,20 @@ export default {
       if (resizeObserver) resizeObserver.disconnect();
     });
 
+    function isNoteRtl(note) {
+      const t = note.title || "";
+      const rtl = (t.match(/[֐-׿؀-ۿ܀-ݏ]/g) || []).length;
+      const ltr = (t.match(/[A-Za-z]/g) || []).length;
+      return rtl > ltr;
+    }
+
+    const gridRtl = computed(() => {
+      const notes = filteredNotes.value;
+      if (!notes.length) return false;
+      const rtlCount = notes.filter(isNoteRtl).length;
+      return rtlCount > notes.length / 2;
+    });
+
     // Distribute notes round-robin into columns.
     const columns = computed(() => {
       const n = numCols.value;
@@ -79,7 +93,7 @@ export default {
 
     return {
       loading, currentView, currentViewLabel, filteredNotes,
-      gridRef, columns,
+      gridRef, columns, gridRtl,
       handleCreate
     };
   },
@@ -100,7 +114,7 @@ export default {
         No notes in <strong>{{ currentViewLabel }}</strong>.
       </div>
 
-      <div v-else ref="gridRef" class="note-grid">
+      <div v-else ref="gridRef" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
         <div v-for="(col, ci) in columns" :key="ci" class="note-grid-col">
           <div v-for="note in col" :key="note.id" :data-note-id="note.id">
             <NoteCard :note="note" />

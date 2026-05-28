@@ -285,9 +285,16 @@ export default {
       props.note.reminderAt && !props.note.reminderDone
     );
 
+    const isRtl = computed(() => {
+      const t = props.note.title || "";
+      const rtlChars = t.match(/[֐-׿؀-ۿ܀-ݏ]/g);
+      const latinChars = t.match(/[A-Za-z]/g);
+      return (rtlChars?.length || 0) > (latinChars?.length || 0);
+    });
+
     return {
       titleInputRef, uncheckedListRef,
-      localTitle, onTitleInput, onTitleKeydown, flushTitle,
+      localTitle, onTitleInput, onTitleKeydown, flushTitle, isRtl,
       visibleUnchecked, visibleChecked,
       shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
       setItemRef, pendingFocusId,
@@ -300,7 +307,7 @@ export default {
     };
   },
   template: `
-    <div class="note-card">
+    <div class="note-card" :dir="isRtl ? 'rtl' : 'ltr'">
       <input ref="titleInputRef"
              class="ribuim-input note-title-input"
              placeholder="Title"
@@ -367,7 +374,7 @@ export default {
 
       <LabelChips :note-id="note.id" :labels="note.labels || []" />
 
-      <div class="note-actions">
+      <div class="note-actions" dir="ltr">
         <ReminderPicker :reminder-at="note.reminderAt"
                         :reminder-recurrence="note.reminderRecurrence"
                         :note-title="note.title"

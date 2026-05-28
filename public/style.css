@@ -441,6 +441,20 @@ body {
   font-size: 0.85rem;
 }
 
+/* ---------- RTL support ---------- */
+
+.note-card[dir="rtl"] .ribuim-input {
+  text-align: right;
+}
+
+.note-card[dir="rtl"] .checklist-toggle {
+  direction: rtl;
+}
+
+.note-card[dir="rtl"] .note-labels {
+  direction: rtl;
+}
+
 /* ---------- Labels ---------- */
 
 .note-labels {
