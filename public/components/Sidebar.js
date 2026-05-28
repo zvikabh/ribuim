@@ -5,7 +5,7 @@ import { usePreferences } from "../composables/usePreferences.js";
 
 export default {
   setup() {
-    const { currentView, sidebarOpen, allLabels, trashCount, setView, closeSidebar } = useView();
+    const { currentView, sidebarOpen, allLabels, trashCount, searchQuery, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
 
@@ -27,7 +27,7 @@ export default {
     }
 
     return {
-      currentView, sidebarOpen, allLabels, trashCount,
+      currentView, sidebarOpen, allLabels, trashCount, searchQuery,
       setView, closeSidebar, isActive, openImport, openPreferences
     };
   },
@@ -68,6 +68,13 @@ export default {
         </template>
 
         <div class="ribuim-sidebar-section">Tools</div>
+        <div class="ribuim-sidebar-search">
+          <i class="bi bi-search"></i>
+          <input type="text"
+                 class="ribuim-search-input"
+                 placeholder="Search"
+                 v-model="searchQuery">
+        </div>
         <button class="ribuim-sidebar-item" @click="openImport">
           <i class="bi bi-box-arrow-in-down"></i>
           <span>Import from Google Keep</span>

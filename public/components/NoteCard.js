@@ -6,9 +6,10 @@ import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
 import LabelChips from "./LabelChips.js";
+import HighlightText from "./HighlightText.js";
 
 export default {
-  components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips },
+  components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips, HighlightText },
   props: {
     note: { type: Object, required: true }
   },
@@ -255,7 +256,7 @@ export default {
       if (titleDirty.value) flushTitle();
     });
 
-    const { currentView } = useView();
+    const { currentView, searchQuery } = useView();
     const isTrashed = computed(() => !!props.note.trashedAt);
 
     function onTrash() {
@@ -304,12 +305,16 @@ export default {
       addNewItem,
       isTrashed, onTrash, onRestore, onDeletePermanently,
       onSetReminder, onClearReminder, onMarkReminderDone,
-      hasActiveReminder
+      hasActiveReminder, searchQuery
     };
   },
   template: `
     <div class="note-card" :dir="isRtl ? 'rtl' : 'ltr'">
-      <input ref="titleInputRef"
+      <div v-if="searchQuery && note.title" class="note-title-highlight">
+        <HighlightText :text="note.title" :query="searchQuery" />
+      </div>
+      <input v-else
+             ref="titleInputRef"
              class="ribuim-input note-title-input"
              placeholder="Title"
              :value="localTitle"
@@ -331,6 +336,7 @@ export default {
             :label="item.label"
             :checked="false"
             :autofocus="item.id === pendingFocusId"
+            :search-query="searchQuery"
             @toggle="(c) => onItemToggle(item.id, c)"
             @label-change="(l) => onItemLabelChange(item.id, l)"
             @delete="onItemDelete(item.id)"
@@ -360,6 +366,7 @@ export default {
             :ref="(el) => setItemRef(item.id, el)"
             :label="item.label"
             :checked="true"
+            :search-query="searchQuery"
             @toggle="(c) => onItemToggle(item.id, c)"
             @label-change="(l) => onItemLabelChange(item.id, l)"
             @delete="onItemDelete(item.id)" />

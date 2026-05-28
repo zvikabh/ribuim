@@ -1,10 +1,13 @@
 import { ref, watch, onBeforeUnmount, onMounted, nextTick } from "vue";
+import HighlightText from "./HighlightText.js";
 
 export default {
+  components: { HighlightText },
   props: {
     label: { type: String, default: "" },
     checked: { type: Boolean, default: false },
-    autofocus: { type: Boolean, default: false }
+    autofocus: { type: Boolean, default: false },
+    searchQuery: { type: String, default: "" }
   },
   emits: ["toggle", "label-change", "delete", "enter-pressed", "backspace-empty"],
   setup(props, { emit }) {
@@ -90,7 +93,11 @@ export default {
            class="form-check-input checklist-checkbox"
            :checked="checked"
            @change="toggle">
-    <textarea ref="inputRef"
+    <span v-if="searchQuery" class="item-label-display">
+      <HighlightText :text="localLabel" :query="searchQuery" />
+    </span>
+    <textarea v-else
+              ref="inputRef"
               rows="1"
               class="ribuim-input item-label-input"
               :value="localLabel"

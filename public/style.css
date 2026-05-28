@@ -137,6 +137,45 @@ body {
   border-top: 1px solid #f0f0f0;
 }
 
+.ribuim-sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 20px 6px 20px;
+  color: #888;
+}
+
+.ribuim-sidebar-search .bi {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.ribuim-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.92rem;
+  color: #333;
+  width: 100%;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.ribuim-search-input:focus {
+  border-bottom-color: var(--ribuim-border-focus);
+}
+
+.ribuim-search-input::placeholder {
+  color: #aaa;
+}
+
+.search-highlight {
+  background: #fff176;
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
 .ribuim-sidebar-backdrop {
   position: fixed;
   top: var(--ribuim-header-height);
@@ -245,6 +284,25 @@ body {
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 6px;
+}
+
+.note-title-highlight {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  padding: 2px 0;
+  color: #202124;
+}
+
+.item-label-display {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #202124;
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* ---------- Checklist items ---------- */

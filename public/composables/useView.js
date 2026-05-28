@@ -24,6 +24,7 @@ function hashFromView(v) {
 
 const currentView = ref(viewFromHash());
 const sidebarOpen = ref(false);
+const searchQuery = ref("");
 
 window.addEventListener("hashchange", () => {
   const v = viewFromHash();
@@ -43,16 +44,28 @@ const allLabels = computed(() => {
 
 const trashCount = computed(() => trashedNotes.value.length);
 
+function noteMatchesSearch(note, q) {
+  if ((note.title || "").toLowerCase().includes(q)) return true;
+  const items = note.items;
+  if (items && typeof items === "object") {
+    for (const id of Object.keys(items)) {
+      if ((items[id]?.label || "").toLowerCase().includes(q)) return true;
+    }
+  }
+  return false;
+}
+
 const filteredNotes = computed(() => {
   const v = currentView.value;
-  if (v.type === "trash") return trashedNotes.value;
-  if (v.type === "reminders") {
-    return sortedNotes.value.filter(n => n.reminderAt && !n.reminderDone);
-  }
-  if (v.type === "label") {
-    return sortedNotes.value.filter(n => (n.labels || []).includes(v.value));
-  }
-  return sortedNotes.value;
+  let list;
+  if (v.type === "trash") list = trashedNotes.value;
+  else if (v.type === "reminders") list = sortedNotes.value.filter(n => n.reminderAt && !n.reminderDone);
+  else if (v.type === "label") list = sortedNotes.value.filter(n => (n.labels || []).includes(v.value));
+  else list = sortedNotes.value;
+
+  const q = searchQuery.value.trim().toLowerCase();
+  if (q) list = list.filter(n => noteMatchesSearch(n, q));
+  return list;
 });
 
 const currentViewLabel = computed(() => {
@@ -88,6 +101,7 @@ export function useView() {
     sidebarOpen,
     allLabels,
     trashCount,
+    searchQuery,
     filteredNotes,
     setView,
     toggleSidebar,
