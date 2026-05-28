@@ -108,6 +108,7 @@ async function createNote() {
     reminderRecurrence: "none",
     reminderDone: false,
     reminderDismissed: false,
+    notificationSent: false,
     items: {},
     itemOrder: [],
     labels: []
@@ -242,7 +243,8 @@ async function setReminder(noteId, reminderAt, recurrence = null) {
     reminderAt: normalizeForRecurrence(reminderAt, recurrence),
     reminderRecurrence: recurrence || "none",
     reminderDone: false,
-    reminderDismissed: false
+    reminderDismissed: false,
+    notificationSent: false
   });
 }
 
@@ -281,7 +283,8 @@ async function markReminderDone(noteId) {
   const update = {
     reminderAt: Timestamp.fromDate(next),
     reminderDone: false,
-    reminderDismissed: false
+    reminderDismissed: false,
+    notificationSent: false
   };
   const items = note?.items;
   if (items && typeof items === "object") {

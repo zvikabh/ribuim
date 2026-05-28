@@ -1,7 +1,9 @@
 import { ref, watch } from "vue";
 import { useNotes } from "./useNotes.js";
+import { usePushNotifications } from "./usePushNotifications.js";
 
 const { notes, markReminderDone, dismissReminder } = useNotes();
+const { registerPush } = usePushNotifications();
 
 const activeBanners = ref([]);
 const notifiedNoteIds = new Set();
@@ -94,6 +96,9 @@ async function requestNotificationPermission() {
   if (Notification.permission === "default") {
     const result = await Notification.requestPermission();
     notificationPermission.value = result;
+    if (result === "granted") {
+      registerPush();
+    }
   }
 }
 

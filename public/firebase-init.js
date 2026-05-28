@@ -17,6 +17,11 @@ export const firebaseConfig = {
   appId: "1:141305632469:web:09a2af3d3d2a645312f45c"
 };
 
+// For push notifications (Tier 2): generate a VAPID key in
+// Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates
+// Leave as empty string to disable push notification registration.
+export const vapidKey = "BIYhG2az5I2WbJcZ0FRRVuKEgnDPNrBV7w6jKa_F97IeMcMgpcRnbL6LVk649A4n_oUmC1rcOpCCs96fsodEwaQ";
+
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
