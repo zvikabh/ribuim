@@ -1,11 +1,34 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useNotes } from "./useNotes.js";
 
 const { notes, sortedNotes } = useNotes();
 
-// view is one of: { type: "all" } | { type: "reminders" } | { type: "label", value: string }
-const currentView = ref({ type: "all" });
+function viewFromHash() {
+  const hash = location.hash.replace(/^#\/?/, "");
+  if (!hash || hash === "all") return { type: "all" };
+  if (hash === "reminders") return { type: "reminders" };
+  if (hash.startsWith("label/")) {
+    const label = decodeURIComponent(hash.slice(6));
+    if (label) return { type: "label", value: label };
+  }
+  return { type: "all" };
+}
+
+function hashFromView(v) {
+  if (v.type === "reminders") return "#reminders";
+  if (v.type === "label") return "#label/" + encodeURIComponent(v.value);
+  return "#all";
+}
+
+const currentView = ref(viewFromHash());
 const sidebarOpen = ref(false);
+
+window.addEventListener("hashchange", () => {
+  const v = viewFromHash();
+  if (JSON.stringify(v) !== JSON.stringify(currentView.value)) {
+    currentView.value = v;
+  }
+});
 
 const allLabels = computed(() => {
   const set = new Set();
@@ -37,6 +60,10 @@ const currentViewLabel = computed(() => {
 function setView(v) {
   currentView.value = v;
   sidebarOpen.value = false;
+  const newHash = hashFromView(v);
+  if (location.hash !== newHash) {
+    history.replaceState(null, "", newHash);
+  }
 }
 
 function toggleSidebar() {
