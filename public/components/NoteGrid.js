@@ -109,6 +109,11 @@ export default {
         No notes yet. Tap the + button to create one.
       </div>
 
+      <div v-else-if="!filteredNotes.length && currentView.type === 'trash'" class="empty-state">
+        <i class="bi bi-trash"></i>
+        Trash is empty.
+      </div>
+
       <div v-else-if="!filteredNotes.length" class="empty-state">
         <i class="bi bi-search"></i>
         No notes in <strong>{{ currentViewLabel }}</strong>.
@@ -122,7 +127,8 @@ export default {
         </div>
       </div>
 
-      <button class="create-note-fab" @click="handleCreate" title="New note">
+      <button v-if="currentView.type !== 'trash'"
+              class="create-note-fab" @click="handleCreate" title="New note">
         <i class="bi bi-plus-lg"></i>
       </button>
     </div>

@@ -5,7 +5,7 @@ import { usePreferences } from "../composables/usePreferences.js";
 
 export default {
   setup() {
-    const { currentView, sidebarOpen, allLabels, setView, closeSidebar } = useView();
+    const { currentView, sidebarOpen, allLabels, trashCount, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
 
@@ -27,7 +27,7 @@ export default {
     }
 
     return {
-      currentView, sidebarOpen, allLabels,
+      currentView, sidebarOpen, allLabels, trashCount,
       setView, closeSidebar, isActive, openImport, openPreferences
     };
   },
@@ -46,6 +46,14 @@ export default {
                 @click="setView({ type: 'reminders' })">
           <i class="bi bi-bell"></i>
           <span>Reminders</span>
+        </button>
+
+        <button class="ribuim-sidebar-item"
+                :class="{ active: isActive({ type: 'trash' }) }"
+                @click="setView({ type: 'trash' })">
+          <i class="bi bi-trash"></i>
+          <span>Trash</span>
+          <span v-if="trashCount" class="badge bg-secondary ms-auto">{{ trashCount }}</span>
         </button>
 
         <template v-if="allLabels.length">

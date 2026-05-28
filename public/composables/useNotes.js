@@ -76,18 +76,27 @@ watch(currentUser, (user) => {
   else { stopListener(); accessDenied.value = false; }
 }, { immediate: true });
 
+const activeNotes = computed(() => notes.value.filter(n => !n.trashedAt));
+
 const sortedNotes = computed(() => {
   const toMs = (ts) => ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0;
 
-  const withReminder = notes.value
+  const withReminder = activeNotes.value
     .filter(n => n.reminderAt && !n.reminderDone)
     .sort((a, b) => toMs(a.reminderAt) - toMs(b.reminderAt));
 
-  const withoutReminder = notes.value
+  const withoutReminder = activeNotes.value
     .filter(n => !n.reminderAt || n.reminderDone)
     .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
 
   return [...withReminder, ...withoutReminder];
+});
+
+const trashedNotes = computed(() => {
+  const toMs = (ts) => ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0;
+  return notes.value
+    .filter(n => !!n.trashedAt)
+    .sort((a, b) => toMs(b.trashedAt) - toMs(a.trashedAt));
 });
 
 function newItemId() {
@@ -215,7 +224,19 @@ function nextOccurrenceAfter(reference, recurrence, template) {
   return null;
 }
 
-async function deleteNote(noteId) {
+async function trashNote(noteId) {
+  await updateDoc(doc(db, "notes", noteId), {
+    trashedAt: serverTimestamp()
+  });
+}
+
+async function restoreNote(noteId) {
+  await updateDoc(doc(db, "notes", noteId), {
+    trashedAt: null
+  });
+}
+
+async function deleteNotePermanently(noteId) {
   await deleteDoc(doc(db, "notes", noteId));
 }
 
@@ -346,10 +367,13 @@ export function useNotes() {
   return {
     notes,
     sortedNotes,
+    trashedNotes,
     loading,
     accessDenied,
     createNote,
-    deleteNote,
+    trashNote,
+    restoreNote,
+    deleteNotePermanently,
     updateTitle,
     setReminder,
     clearReminder,

@@ -1,7 +1,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
-import { useConfirmDialog } from "../composables/useConfirmDialog.js";
+import { useView } from "../composables/useView.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -15,7 +15,7 @@ export default {
   setup(props) {
     const {
       notes,
-      updateTitle, deleteNote: deleteNoteFn,
+      updateTitle, trashNote, restoreNote, deleteNotePermanently,
       setReminder, clearReminder, markReminderDone,
       insertItem, deleteItem, setItemChecked, setItemLabel, setItemOrder,
       newItemId
@@ -255,18 +255,19 @@ export default {
       if (titleDirty.value) flushTitle();
     });
 
-    const { confirm: confirmDialog } = useConfirmDialog();
+    const { currentView } = useView();
+    const isTrashed = computed(() => !!props.note.trashedAt);
 
-    async function confirmDeleteNote() {
-      const label = props.note.title?.trim() || "this note";
-      const ok = await confirmDialog({
-        title: "Delete note",
-        message: `Delete "${label}"? This can't be undone.`,
-        confirmLabel: "Delete",
-        cancelLabel: "Cancel",
-        variant: "danger"
-      });
-      if (ok) deleteNoteFn(props.note.id);
+    function onTrash() {
+      trashNote(props.note.id);
+    }
+
+    function onRestore() {
+      restoreNote(props.note.id);
+    }
+
+    function onDeletePermanently() {
+      deleteNotePermanently(props.note.id);
     }
 
     function onSetReminder(timestamp, recurrence) {
@@ -301,7 +302,7 @@ export default {
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty,
       addNewItem,
-      confirmDeleteNote,
+      isTrashed, onTrash, onRestore, onDeletePermanently,
       onSetReminder, onClearReminder, onMarkReminderDone,
       hasActiveReminder
     };
@@ -374,7 +375,22 @@ export default {
 
       <LabelChips :note-id="note.id" :labels="note.labels || []" />
 
-      <div class="note-actions" dir="ltr">
+      <div v-if="isTrashed" class="note-actions" dir="ltr">
+        <button class="note-action-btn"
+                @click="onRestore"
+                title="Restore note">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          <span>Restore</span>
+        </button>
+        <span class="ms-auto"></span>
+        <button class="note-action-btn danger"
+                @click="onDeletePermanently"
+                title="Delete permanently">
+          <i class="bi bi-x-circle"></i>
+          <span>Delete forever</span>
+        </button>
+      </div>
+      <div v-else class="note-actions" dir="ltr">
         <ReminderPicker :reminder-at="note.reminderAt"
                         :reminder-recurrence="note.reminderRecurrence"
                         :note-title="note.title"
@@ -389,8 +405,8 @@ export default {
         </button>
         <span class="ms-auto"></span>
         <button class="note-action-btn danger"
-                @click="confirmDeleteNote"
-                title="Delete note">
+                @click="onTrash"
+                title="Move to trash">
           <i class="bi bi-trash"></i>
         </button>
       </div>

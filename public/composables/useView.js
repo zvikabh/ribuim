@@ -1,12 +1,13 @@
 import { ref, computed, watch } from "vue";
 import { useNotes } from "./useNotes.js";
 
-const { notes, sortedNotes } = useNotes();
+const { notes, sortedNotes, trashedNotes } = useNotes();
 
 function viewFromHash() {
   const hash = location.hash.replace(/^#\/?/, "");
   if (!hash || hash === "all") return { type: "all" };
   if (hash === "reminders") return { type: "reminders" };
+  if (hash === "trash") return { type: "trash" };
   if (hash.startsWith("label/")) {
     const label = decodeURIComponent(hash.slice(6));
     if (label) return { type: "label", value: label };
@@ -16,6 +17,7 @@ function viewFromHash() {
 
 function hashFromView(v) {
   if (v.type === "reminders") return "#reminders";
+  if (v.type === "trash") return "#trash";
   if (v.type === "label") return "#label/" + encodeURIComponent(v.value);
   return "#all";
 }
@@ -33,13 +35,17 @@ window.addEventListener("hashchange", () => {
 const allLabels = computed(() => {
   const set = new Set();
   for (const note of notes.value) {
+    if (note.trashedAt) continue;
     for (const label of note.labels || []) set.add(label);
   }
   return [...set].sort((a, b) => a.localeCompare(b));
 });
 
+const trashCount = computed(() => trashedNotes.value.length);
+
 const filteredNotes = computed(() => {
   const v = currentView.value;
+  if (v.type === "trash") return trashedNotes.value;
   if (v.type === "reminders") {
     return sortedNotes.value.filter(n => n.reminderAt && !n.reminderDone);
   }
@@ -53,6 +59,7 @@ const currentViewLabel = computed(() => {
   const v = currentView.value;
   if (v.type === "all") return "All notes";
   if (v.type === "reminders") return "Reminders";
+  if (v.type === "trash") return "Trash";
   if (v.type === "label") return "#" + v.value;
   return "";
 });
@@ -80,6 +87,7 @@ export function useView() {
     currentViewLabel,
     sidebarOpen,
     allLabels,
+    trashCount,
     filteredNotes,
     setView,
     toggleSidebar,

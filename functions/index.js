@@ -16,7 +16,7 @@ exports.sendReminderNotifications = onSchedule("every 1 minutes", async () => {
     .get();
 
   const dueDocs = snapshot.docs.filter(
-    (d) => !d.data().notificationSent && !d.data().reminderDismissed
+    (d) => !d.data().notificationSent && !d.data().reminderDismissed && !d.data().trashedAt
   );
 
   if (!dueDocs.length) return;
@@ -73,4 +73,22 @@ exports.sendReminderNotifications = onSchedule("every 1 minutes", async () => {
 
     await noteDoc.ref.update({ notificationSent: true });
   }
+});
+
+exports.cleanupTrash = onSchedule("every 168 hours", async () => {
+  const db = getFirestore();
+  const thirtyDaysAgo = Timestamp.fromMillis(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const snapshot = await db
+    .collection("notes")
+    .where("trashedAt", "<=", thirtyDaysAgo)
+    .get();
+
+  if (!snapshot.size) return;
+
+  const batch = db.batch();
+  snapshot.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+
+  console.log(`Deleted ${snapshot.size} trash notes older than 30 days`);
 });
