@@ -1,4 +1,4 @@
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useNotes } from "./useNotes.js";
 import { usePushNotifications } from "./usePushNotifications.js";
 
@@ -80,6 +80,62 @@ watch(notes, (current) => {
 }, { deep: true });
 
 setInterval(checkDueReminders, CHECK_INTERVAL_MS);
+
+// ---------- Favicon badge ----------
+
+let originalIcon = null;
+let badgeCanvas = null;
+
+function updateFaviconBadge(hasAlert) {
+  const link = document.querySelector('link[rel="icon"]');
+  if (!link) return;
+
+  if (!originalIcon) {
+    originalIcon = new Image();
+    originalIcon.crossOrigin = "anonymous";
+    originalIcon.src = link.href;
+  }
+
+  if (!hasAlert) {
+    if (originalIcon.src) link.href = originalIcon.src;
+    return;
+  }
+
+  if (!badgeCanvas) {
+    badgeCanvas = document.createElement("canvas");
+    badgeCanvas.width = 64;
+    badgeCanvas.height = 64;
+  }
+
+  function draw() {
+    const ctx = badgeCanvas.getContext("2d");
+    ctx.clearRect(0, 0, 64, 64);
+    ctx.drawImage(originalIcon, 0, 0, 64, 64);
+    ctx.fillStyle = "#d93025";
+    ctx.beginPath();
+    ctx.arc(52, 12, 12, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    link.href = badgeCanvas.toDataURL("image/png");
+  }
+
+  if (originalIcon.complete) draw();
+  else originalIcon.onload = draw;
+}
+
+const dueNoteCount = computed(() => {
+  const now = Date.now();
+  return notes.value.filter(n => {
+    const due = toMs(n.reminderAt);
+    return due && due <= now && !n.reminderDone && !n.reminderDismissed;
+  }).length;
+});
+
+watch(dueNoteCount, (count) => {
+  updateFaviconBadge(count > 0);
+}, { immediate: true });
 
 async function dismissBanner(noteId) {
   activeBanners.value = activeBanners.value.filter(b => b.id !== noteId);
