@@ -31,6 +31,14 @@ service cloud.firestore {
       allow delete: if isAllowedUser() && isOwner();
     }
 
+    match /userPreferences/{email} {
+      allow read: if isAllowedUser()
+        && request.auth.token.email == email;
+      allow create, update: if isAllowedUser()
+        && request.auth.token.email == email;
+      allow delete: if false;
+    }
+
     match /fcmTokens/{tokenId} {
       allow read: if false;
       allow create, update: if isAllowedUser()

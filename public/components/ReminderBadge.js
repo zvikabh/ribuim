@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useNotes } from "../composables/useNotes.js";
+import { usePreferences } from "../composables/usePreferences.js";
 
 const ONE_HOUR = 3600_000;
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -45,6 +46,9 @@ export default {
   },
   setup(props) {
     const { parseRecurrence, isRecurring: isRecurringFn } = useNotes();
+    const { preferences } = usePreferences();
+
+    const DAY_CLASSES = ["day-sun", "day-mon", "day-tue", "day-wed", "day-thu", "day-fri", "day-sat"];
 
     const now = ref(Date.now());
     let timer = null;
@@ -55,6 +59,9 @@ export default {
 
     const colorClass = computed(() => {
       if (!date.value) return "";
+      const mode = preferences.value.reminderColors || "by-time";
+      if (mode === "no-colors") return "no-color";
+      if (mode === "by-day") return DAY_CLASSES[date.value.getDay()];
       const diff = date.value.getTime() - now.value;
       if (diff < 0) return "past";
       if (diff < 3 * ONE_HOUR) return "soon3";

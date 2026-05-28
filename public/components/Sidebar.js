@@ -1,11 +1,13 @@
 import { computed } from "vue";
 import { useView } from "../composables/useView.js";
 import { useImport } from "../composables/useImport.js";
+import { usePreferences } from "../composables/usePreferences.js";
 
 export default {
   setup() {
     const { currentView, sidebarOpen, allLabels, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
+    const { showPreferences: showPrefs } = usePreferences();
 
     function isActive(view) {
       const c = currentView.value;
@@ -19,9 +21,14 @@ export default {
       closeSidebar();
     }
 
+    function openPreferences() {
+      showPrefs();
+      closeSidebar();
+    }
+
     return {
       currentView, sidebarOpen, allLabels,
-      setView, closeSidebar, isActive, openImport
+      setView, closeSidebar, isActive, openImport, openPreferences
     };
   },
   template: `
@@ -57,6 +64,10 @@ export default {
         <button class="ribuim-sidebar-item" @click="openImport">
           <i class="bi bi-box-arrow-in-down"></i>
           <span>Import from Google Keep</span>
+        </button>
+        <button class="ribuim-sidebar-item" @click="openPreferences">
+          <i class="bi bi-gear"></i>
+          <span>Preferences</span>
         </button>
       </nav>
     </aside>

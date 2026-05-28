@@ -1,8 +1,9 @@
-import { createApp, computed } from "vue";
+import { createApp, computed, watch } from "vue";
 import "./firebase-init.js";
 import { useAuth } from "./composables/useAuth.js";
 import { useNotes } from "./composables/useNotes.js";
 import { useReminders } from "./composables/useReminders.js";
+import { usePreferences } from "./composables/usePreferences.js";
 import LoginScreen from "./components/LoginScreen.js";
 import AppHeader from "./components/AppHeader.js";
 import NoteGrid from "./components/NoteGrid.js";
@@ -10,13 +11,15 @@ import ReminderBanner from "./components/ReminderBanner.js";
 import ConfirmDialog from "./components/ConfirmDialog.js";
 import Sidebar from "./components/Sidebar.js";
 import ImportDialog from "./components/ImportDialog.js";
+import PreferencesDialog from "./components/PreferencesDialog.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
     const { requestNotificationPermission } = useReminders();
+    const { preferences } = usePreferences();
 
     function onAppClick() {
       if (currentUser.value && !accessDenied.value) {
@@ -25,6 +28,10 @@ const App = {
       }
     }
     document.addEventListener("click", onAppClick, true);
+
+    watch(() => preferences.value.screenUsage, (val) => {
+      document.body.classList.toggle("cluttered", val === "cluttered");
+    }, { immediate: true });
 
     const stage = computed(() => {
       if (!authReady.value) return "loading";
@@ -63,6 +70,7 @@ const App = {
         <NoteGrid />
       </main>
       <ImportDialog />
+      <PreferencesDialog />
     </template>
 
     <ConfirmDialog />

@@ -427,6 +427,16 @@ body {
 .reminder-badge.soon6  { background: #f4b400; color: #202124; }
 .reminder-badge.future { background: #34a853; }
 
+.reminder-badge.day-sun { background: #1a73e8; }
+.reminder-badge.day-mon { background: #00acc1; }
+.reminder-badge.day-tue { background: #f57c00; }
+.reminder-badge.day-wed { background: #34a853; }
+.reminder-badge.day-thu { background: #9c27b0; }
+.reminder-badge.day-fri { background: #f4b400; color: #202124; }
+.reminder-badge.day-sat { background: #5f6368; }
+
+.reminder-badge.no-color { background: #f4b400; color: #202124; }
+
 .reminder-badge .bi {
   font-size: 0.85rem;
 }
@@ -783,4 +793,41 @@ body {
   background: #fff;
   border: 1px solid var(--ribuim-border);
   border-radius: 8px;
+}
+
+/* ---------- Cluttered mode ---------- */
+
+.cluttered .note-grid {
+  padding: 4px;
+  gap: 4px;
+}
+
+.cluttered .note-grid-col {
+  gap: 4px;
+}
+
+@media (max-width: 600px) {
+  .cluttered .note-grid {
+    padding: 2px;
+    gap: 2px;
+  }
+  .cluttered .note-grid-col {
+    gap: 2px;
+  }
+}
+
+/* ---------- Preferences dialog ---------- */
+
+.pref-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-left: 9px;
+  margin-right: 2px;
+}
+
+.pref-swatch:first-child {
+  margin-left: 0;
 }

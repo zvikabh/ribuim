@@ -1,29 +1,34 @@
 import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
+import { usePreferences } from "../composables/usePreferences.js";
 import NoteCard from "./NoteCard.js";
 
 const MIN_COL_WIDTH = 280;
-const COL_GAP = 12;
-const GRID_PADDING = 16;
 
 export default {
   components: { NoteCard },
   setup() {
     const { loading, createNote, addLabel } = useNotes();
     const { currentView, currentViewLabel, filteredNotes, setView } = useView();
+    const { preferences } = usePreferences();
 
     const gridRef = ref(null);
     const numCols = ref(1);
     let resizeObserver = null;
 
+    const gridPadding = computed(() => preferences.value.screenUsage === "cluttered" ? 4 : 16);
+    const colGap = computed(() => preferences.value.screenUsage === "cluttered" ? 4 : 12);
+
     function updateCols() {
       const el = gridRef.value;
       if (!el) return;
-      const available = el.clientWidth - GRID_PADDING * 2;
+      const available = el.clientWidth - gridPadding.value * 2;
       if (available <= 0) return;
-      numCols.value = Math.max(1, Math.floor((available + COL_GAP) / (MIN_COL_WIDTH + COL_GAP)));
+      numCols.value = Math.max(1, Math.floor((available + colGap.value) / (MIN_COL_WIDTH + colGap.value)));
     }
+
+    watch([gridPadding, colGap], updateCols);
 
     watch(gridRef, (el) => {
       if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
