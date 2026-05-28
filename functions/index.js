@@ -36,12 +36,10 @@ exports.sendReminderNotifications = onSchedule("every 1 minutes", async () => {
     if (tokens.length > 0) {
       const message = {
         tokens,
-        notification: {
-          title: "Ribuim Reminder",
-          body: note.title || "A reminder needs your attention",
-        },
         data: {
           noteId: noteDoc.id,
+          title: "Ribuim Reminder",
+          body: note.title || "A reminder needs your attention",
         },
         webpush: {
           fcmOptions: {

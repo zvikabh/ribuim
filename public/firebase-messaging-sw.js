@@ -13,8 +13,8 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "Ribuim Reminder";
-  const body = payload.notification?.body || "A reminder needs your attention";
+  const title = payload.data?.title || "Ribuim Reminder";
+  const body = payload.data?.body || "A reminder needs your attention";
   const noteId = payload.data?.noteId || "";
   self.registration.showNotification(title, {
     body,

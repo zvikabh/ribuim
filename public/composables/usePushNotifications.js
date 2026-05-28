@@ -56,8 +56,8 @@ async function registerPush() {
 function setupForegroundHandler() {
   if (!messaging) return;
   onMessage(messaging, (payload) => {
-    const title = payload.notification?.title || "Ribuim Reminder";
-    const body = payload.notification?.body || "";
+    const title = payload.data?.title || "Ribuim Reminder";
+    const body = payload.data?.body || "";
     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       new Notification(title, {
         body,
