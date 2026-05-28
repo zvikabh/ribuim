@@ -53,7 +53,6 @@ export default {
                 @click="setView({ type: 'trash' })">
           <i class="bi bi-trash"></i>
           <span>Trash</span>
-          <span v-if="trashCount" class="badge bg-secondary ms-auto">{{ trashCount }}</span>
         </button>
 
         <template v-if="allLabels.length">
