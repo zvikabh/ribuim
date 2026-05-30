@@ -112,13 +112,27 @@ export default {
     const totalItems = computed(() => uncheckedItems.value.length + checkedItems.value.length);
     const shouldCollapse = computed(() => totalItems.value > MAX_VISIBLE);
 
+    const searchForcesExpand = computed(() => {
+      const q = searchQuery.value?.trim().toLowerCase();
+      if (!q || !shouldCollapse.value) return false;
+      for (const item of uncheckedItems.value.slice(MAX_VISIBLE)) {
+        if ((item.label || "").toLowerCase().includes(q)) return true;
+      }
+      for (const item of checkedItems.value) {
+        if ((item.label || "").toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
+
+    const effectiveExpanded = computed(() => expanded.value || searchForcesExpand.value);
+
     const visibleUnchecked = computed(() => {
-      if (!shouldCollapse.value || expanded.value) return uncheckedItems.value;
+      if (!shouldCollapse.value || effectiveExpanded.value) return uncheckedItems.value;
       return uncheckedItems.value.slice(0, MAX_VISIBLE);
     });
 
     const visibleChecked = computed(() => {
-      if (!shouldCollapse.value || expanded.value) return checkedItems.value;
+      if (!shouldCollapse.value || effectiveExpanded.value) return checkedItems.value;
       return [];
     });
 
