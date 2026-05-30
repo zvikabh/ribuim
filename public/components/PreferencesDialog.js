@@ -60,13 +60,13 @@ export default {
                       <span>
                         <strong>Psychedelic</strong>
                         <br><small class="text-muted">
-                          <span class="pref-swatch" style="background:#1a73e8"></span> Sun
-                          <span class="pref-swatch" style="background:#00acc1"></span> Mon
-                          <span class="pref-swatch" style="background:#f57c00"></span> Tue
-                          <span class="pref-swatch" style="background:#34a853"></span> Wed
-                          <span class="pref-swatch" style="background:#9c27b0"></span> Thu
-                          <span class="pref-swatch" style="background:#f4b400"></span> Fri
-                          <span class="pref-swatch" style="background:#5f6368"></span> Sat
+                          <span class="pref-swatch" style="background:#6E88FF"></span> Sun
+                          <span class="pref-swatch" style="background:#8CC9FF"></span> Mon
+                          <span class="pref-swatch" style="background:#FFC15E"></span> Tue
+                          <span class="pref-swatch" style="background:#FF9CF6"></span> Wed
+                          <span class="pref-swatch" style="background:#D296FF"></span> Thu
+                          <span class="pref-swatch" style="background:#FFEB4D"></span> Fri
+                          <span class="pref-swatch" style="background:#D1D1D1"></span> Sat
                         </small>
                       </span>
                     </label>

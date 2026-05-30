@@ -485,13 +485,13 @@ body {
 .reminder-badge.soon6  { background: #f4b400; color: #202124; }
 .reminder-badge.future { background: #34a853; }
 
-.reminder-badge.day-sun { background: #1a73e8; }
-.reminder-badge.day-mon { background: #00acc1; }
-.reminder-badge.day-tue { background: #f57c00; }
-.reminder-badge.day-wed { background: #34a853; }
-.reminder-badge.day-thu { background: #9c27b0; }
-.reminder-badge.day-fri { background: #f4b400; color: #202124; }
-.reminder-badge.day-sat { background: #5f6368; }
+.reminder-badge.day-sun { background: #6E88FF; }
+.reminder-badge.day-mon { background: #8CC9FF; color: #202124; }
+.reminder-badge.day-tue { background: #FFC15E; color: #202124; }
+.reminder-badge.day-wed { background: #FF9CF6; color: #202124; }
+.reminder-badge.day-thu { background: #D296FF; }
+.reminder-badge.day-fri { background: #FFEB4D; color: #202124; }
+.reminder-badge.day-sat { background: #D1D1D1; color: #202124; }
 
 .reminder-badge.no-color { background: #f4b400; color: #202124; }
 
