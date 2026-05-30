@@ -108,7 +108,11 @@ export default {
       }
       pushUndo("Create note", () => trashNote(id));
       await nextTick();
-      setTimeout(() => scrollToAndHighlight(id), 150);
+      setTimeout(() => {
+        scrollToAndHighlight(id);
+        const titleInput = gridRef.value?.querySelector(`[data-note-id="${id}"] .note-title-input`);
+        if (titleInput) titleInput.focus();
+      }, 150);
     }
 
     return {
