@@ -1,4 +1,4 @@
-import { ref, watch, onBeforeUnmount, onMounted, nextTick } from "vue";
+import { ref, watch, onBeforeUnmount, onMounted, onUpdated, nextTick } from "vue";
 import HighlightText from "./HighlightText.js";
 
 export default {
@@ -16,11 +16,28 @@ export default {
     const dirty = ref(false);
     let timer = null;
 
+    let lastWidth = 0;
+    let resizeObserver = null;
+
     function autoResize() {
       const el = inputRef.value;
       if (!el) return;
       el.style.height = "0";
       el.style.height = el.scrollHeight + "px";
+    }
+
+    function setupResizeObserver() {
+      if (resizeObserver) resizeObserver.disconnect();
+      const el = inputRef.value;
+      if (!el) return;
+      resizeObserver = new ResizeObserver(() => {
+        const w = el.clientWidth;
+        if (w !== lastWidth) {
+          lastWidth = w;
+          autoResize();
+        }
+      });
+      resizeObserver.observe(el);
     }
 
     watch(() => props.label, (newVal) => {
@@ -73,12 +90,20 @@ export default {
 
     onMounted(() => {
       autoResize();
+      setupResizeObserver();
       if (props.autofocus && inputRef.value) {
         inputRef.value.focus();
       }
     });
 
+    onUpdated(() => {
+      if (inputRef.value && !resizeObserver) {
+        setupResizeObserver();
+      }
+    });
+
     onBeforeUnmount(() => {
+      if (resizeObserver) resizeObserver.disconnect();
       if (timer) clearTimeout(timer);
       if (dirty.value) flush();
     });
