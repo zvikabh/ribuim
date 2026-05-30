@@ -57,13 +57,30 @@ export default {
       return rtlCount > notes.length / 2;
     });
 
-    // Distribute notes round-robin into columns.
+    function estimateNoteHeight(note) {
+      let h = 90;
+      if (note.title) h += 30;
+      const items = note.items ? Object.keys(note.items).length : 0;
+      h += Math.min(items, 7) * 28;
+      if (items > 7) h += 25;
+      if (note.labels?.length) h += 30;
+      if (note.sharedWith?.length) h += 30;
+      if (note.reminderAt && !note.reminderDone) h += 24;
+      return h;
+    }
+
     const columns = computed(() => {
       const n = numCols.value;
       const cols = Array.from({ length: n }, () => []);
-      filteredNotes.value.forEach((note, i) => {
-        cols[i % n].push(note);
-      });
+      const colHeights = new Array(n).fill(0);
+      for (const note of filteredNotes.value) {
+        let minIdx = 0;
+        for (let i = 1; i < n; i++) {
+          if (colHeights[i] < colHeights[minIdx]) minIdx = i;
+        }
+        cols[minIdx].push(note);
+        colHeights[minIdx] += estimateNoteHeight(note);
+      }
       return cols;
     });
 
