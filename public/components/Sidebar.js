@@ -2,12 +2,14 @@ import { computed } from "vue";
 import { useView } from "../composables/useView.js";
 import { useImport } from "../composables/useImport.js";
 import { usePreferences } from "../composables/usePreferences.js";
+import { useUndo } from "../composables/useUndo.js";
 
 export default {
   setup() {
     const { currentView, sidebarOpen, allLabels, trashCount, searchQuery, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
+    const { canUndo, lastAction, undo } = useUndo();
 
     function isActive(view) {
       const c = currentView.value;
@@ -28,7 +30,8 @@ export default {
 
     return {
       currentView, sidebarOpen, allLabels, trashCount, searchQuery,
-      setView, closeSidebar, isActive, openImport, openPreferences
+      setView, closeSidebar, isActive, openImport, openPreferences,
+      canUndo, lastAction, undo
     };
   },
   template: `
@@ -82,6 +85,14 @@ export default {
                  placeholder="Search"
                  v-model="searchQuery">
         </div>
+        <button class="ribuim-sidebar-item"
+                :disabled="!canUndo"
+                :title="canUndo ? 'Undo: ' + lastAction : 'Nothing to undo'"
+                @click="undo">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          <span>Undo</span>
+          <span v-if="canUndo" class="sidebar-undo-hint">{{ lastAction }}</span>
+        </button>
         <button class="ribuim-sidebar-item" @click="openImport">
           <i class="bi bi-box-arrow-in-down"></i>
           <span>Import from Google Keep</span>

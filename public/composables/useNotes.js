@@ -391,6 +391,17 @@ async function deleteItem(noteId, itemId) {
   });
 }
 
+async function restoreItem(noteId, itemId, label, checked, position) {
+  const note = notes.value.find(n => n.id === noteId);
+  const currentOrder = note?.itemOrder ? [...note.itemOrder] : [];
+  const insertAt = Math.min(position, currentOrder.length);
+  currentOrder.splice(insertAt, 0, itemId);
+  await updateDoc(doc(db, "notes", noteId), {
+    [`items.${itemId}`]: { label, checked },
+    itemOrder: currentOrder
+  });
+}
+
 async function setItemChecked(noteId, itemId, checked) {
   await updateDoc(doc(db, "notes", noteId), {
     [`items.${itemId}.checked`]: checked
@@ -430,6 +441,7 @@ export function useNotes() {
     addItem,
     insertItem,
     deleteItem,
+    restoreItem,
     setItemChecked,
     setItemLabel,
     setItemOrder,

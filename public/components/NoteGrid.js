@@ -2,6 +2,7 @@ import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import { usePreferences } from "../composables/usePreferences.js";
+import { useUndo } from "../composables/useUndo.js";
 import NoteCard from "./NoteCard.js";
 
 const MIN_COL_WIDTH = 280;
@@ -9,9 +10,10 @@ const MIN_COL_WIDTH = 280;
 export default {
   components: { NoteCard },
   setup() {
-    const { loading, createNote, addLabel } = useNotes();
+    const { loading, createNote, addLabel, trashNote } = useNotes();
     const { currentView, currentViewLabel, filteredNotes, setView } = useView();
     const { preferences } = usePreferences();
+    const { pushUndo } = useUndo();
 
     const gridRef = ref(null);
     const numCols = ref(1);
@@ -104,6 +106,7 @@ export default {
       } else if (view.type !== "all") {
         setView({ type: "all" });
       }
+      pushUndo("Create note", () => trashNote(id));
       await nextTick();
       setTimeout(() => scrollToAndHighlight(id), 150);
     }

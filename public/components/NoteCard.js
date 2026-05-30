@@ -2,6 +2,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue"
 import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
+import { useUndo } from "../composables/useUndo.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -20,9 +21,10 @@ export default {
       notes,
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
       setReminder, clearReminder, markReminderDone,
-      insertItem, deleteItem, setItemChecked, setItemLabel, setItemOrder,
+      insertItem, deleteItem, restoreItem, setItemChecked, setItemLabel, setItemOrder,
       newItemId
     } = useNotes();
+    const { pushUndo } = useUndo();
 
     const MAX_VISIBLE = 7;
     const titleInputRef = ref(null);
@@ -213,6 +215,7 @@ export default {
           console.error("insertItem failed:", err);
         }
       });
+      pushUndo("Add item", () => deleteItem(noteId, newId));
 
       // After the new component has mounted (and onMounted has fired,
       // focusing the input), clear pendingFocusId so re-renders don't keep
@@ -223,14 +226,29 @@ export default {
 
     function onItemToggle(itemId, newChecked) {
       setItemChecked(props.note.id, itemId, newChecked);
+      pushUndo(newChecked ? "Check item" : "Uncheck item",
+        () => setItemChecked(props.note.id, itemId, !newChecked));
     }
 
     function onItemLabelChange(itemId, newLabel) {
       setItemLabel(props.note.id, itemId, newLabel);
     }
 
-    function onItemDelete(itemId) {
+    function deleteItemWithUndo(itemId) {
+      const item = props.note.items?.[itemId];
+      const orderIdx = (props.note.itemOrder || []).indexOf(itemId);
       deleteItem(props.note.id, itemId);
+      if (item) {
+        const noteId = props.note.id;
+        const label = item.label || "";
+        const checked = !!item.checked;
+        const pos = orderIdx >= 0 ? orderIdx : 0;
+        pushUndo("Delete item", () => restoreItem(noteId, itemId, label, checked, pos));
+      }
+    }
+
+    function onItemDelete(itemId) {
+      deleteItemWithUndo(itemId);
     }
 
     function onItemEnterPressed(itemId) {
@@ -238,11 +256,12 @@ export default {
     }
 
     function onItemBackspaceEmpty(itemId) {
-      deleteItem(props.note.id, itemId);
+      deleteItemWithUndo(itemId);
     }
 
     function onDragEnd() {
       if (!uncheckedListRef.value) return;
+      const prevOrder = [...(props.note.itemOrder || [])];
       const els = uncheckedListRef.value.querySelectorAll("[data-item-id]");
       const visibleIds = Array.from(els).map(el => el.dataset.itemId);
       const visibleSet = new Set(visibleIds);
@@ -251,7 +270,9 @@ export default {
         .map(i => i.id);
       const checkedIds = checkedItems.value.map(i => i.id);
       const fullOrder = [...visibleIds, ...hiddenIds, ...checkedIds];
-      setItemOrder(props.note.id, fullOrder);
+      const noteId = props.note.id;
+      setItemOrder(noteId, fullOrder);
+      pushUndo("Reorder items", () => setItemOrder(noteId, prevOrder));
     }
 
     onMounted(() => {
@@ -282,11 +303,15 @@ export default {
     }
 
     function onTrash() {
-      trashNote(props.note.id);
+      const noteId = props.note.id;
+      trashNote(noteId);
+      pushUndo("Move to trash", () => restoreNote(noteId));
     }
 
     function onRestore() {
-      restoreNote(props.note.id);
+      const noteId = props.note.id;
+      restoreNote(noteId);
+      pushUndo("Restore note", () => trashNote(noteId));
     }
 
     function onDeletePermanently() {
