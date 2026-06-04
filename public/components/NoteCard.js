@@ -327,6 +327,34 @@ export default {
       deleteItemWithUndo(itemId);
     }
 
+    // Move focus between items (and to the title) with Up/Down arrows when the
+    // caret is at the first/last visual line of an item.
+    function onItemNavigate(itemId, direction) {
+      const order = [...visibleUnchecked.value, ...visibleChecked.value].map(i => i.id);
+      const idx = order.indexOf(itemId);
+      if (idx === -1) return;
+      if (direction === "up") {
+        if (idx === 0) {
+          const el = titleInputRef.value;
+          if (el) {
+            el.focus();
+            const n = el.value.length;
+            el.setSelectionRange(n, n);
+          }
+          return;
+        }
+        focusItem(order[idx - 1], "end");
+      } else {
+        if (idx >= order.length - 1) return;
+        focusItem(order[idx + 1], "start");
+      }
+    }
+
+    function focusItem(itemId, pos) {
+      const ref = itemRefs.value[itemId];
+      if (ref && typeof ref.focusInput === "function") ref.focusInput(pos);
+    }
+
     function onDragEnd() {
       if (!uncheckedListRef.value) return;
       const prevOrder = [...(props.note.itemOrder || [])];
@@ -416,7 +444,7 @@ export default {
       shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
       setItemRef, pendingFocusId,
       onItemToggle, onItemLabelChange, onItemDelete,
-      onItemEnterPressed, onItemBackspaceEmpty,
+      onItemEnterPressed, onItemBackspaceEmpty, onItemNavigate,
       addNewItem,
       hasItems, allChecked, onCheckAll,
       isTrashed, isOwner, onTrash, onRestore, onDeletePermanently,
@@ -469,7 +497,8 @@ export default {
             @label-change="(l) => onItemLabelChange(item.id, l)"
             @delete="onItemDelete(item.id)"
             @enter-pressed="onItemEnterPressed(item.id)"
-            @backspace-empty="onItemBackspaceEmpty(item.id)" />
+            @backspace-empty="onItemBackspaceEmpty(item.id)"
+            @navigate="(dir) => onItemNavigate(item.id, dir)" />
         </li>
       </ul>
 
@@ -497,7 +526,8 @@ export default {
             :search-query="searchQuery"
             @toggle="(c) => onItemToggle(item.id, c)"
             @label-change="(l) => onItemLabelChange(item.id, l)"
-            @delete="onItemDelete(item.id)" />
+            @delete="onItemDelete(item.id)"
+            @navigate="(dir) => onItemNavigate(item.id, dir)" />
         </li>
       </ul>
 

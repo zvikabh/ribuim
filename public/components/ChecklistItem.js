@@ -5,6 +5,41 @@ import { useAutocomplete } from "../composables/useAutocomplete.js";
 
 const URL_RE = /https?:\/\/\S/;
 
+// Measures the vertical pixel offset of the caret (at character `index`)
+// within a textarea, using a hidden mirror div that replicates the
+// textarea's text layout. Used to tell whether the caret sits on the
+// first or last visual line (including soft-wrapped lines).
+let caretMirror = null;
+const MIRROR_PROPS = [
+  "boxSizing", "width", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+  "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth",
+  "fontFamily", "fontSize", "fontWeight", "fontStyle", "fontVariant",
+  "letterSpacing", "lineHeight", "textTransform", "wordSpacing", "textIndent", "direction"
+];
+function caretTop(ta, index) {
+  const style = getComputedStyle(ta);
+  if (!caretMirror) {
+    caretMirror = document.createElement("div");
+    caretMirror.style.position = "absolute";
+    caretMirror.style.visibility = "hidden";
+    caretMirror.style.top = "-9999px";
+    caretMirror.style.left = "-9999px";
+    caretMirror.style.whiteSpace = "pre-wrap";
+    caretMirror.style.overflowWrap = "break-word";
+    caretMirror.style.wordBreak = "break-word";
+    document.body.appendChild(caretMirror);
+  }
+  const m = caretMirror;
+  for (const p of MIRROR_PROPS) m.style[p] = style[p];
+  m.textContent = ta.value.slice(0, index);
+  const marker = document.createElement("span");
+  marker.textContent = ta.value.slice(index) || ".";
+  m.appendChild(marker);
+  const top = marker.offsetTop;
+  m.removeChild(marker);
+  return top;
+}
+
 export default {
   components: { HighlightText, LinkifiedText },
   props: {
@@ -13,7 +48,7 @@ export default {
     autofocus: { type: Boolean, default: false },
     searchQuery: { type: String, default: "" }
   },
-  emits: ["toggle", "label-change", "delete", "enter-pressed", "backspace-empty"],
+  emits: ["toggle", "label-change", "delete", "enter-pressed", "backspace-empty", "navigate"],
   setup(props, { emit }) {
     const { complete } = useAutocomplete();
     const inputRef = ref(null);
@@ -123,6 +158,18 @@ export default {
       flush();
     }
 
+    function atFirstLine() {
+      const el = inputRef.value;
+      if (!el || el.selectionStart !== el.selectionEnd) return false;
+      return caretTop(el, el.selectionStart) <= caretTop(el, 0) + 1;
+    }
+
+    function atLastLine() {
+      const el = inputRef.value;
+      if (!el || el.selectionStart !== el.selectionEnd) return false;
+      return caretTop(el, el.selectionStart) >= caretTop(el, el.value.length) - 1;
+    }
+
     function onKeydown(e) {
       if (e.key === "Tab" && ghostSuffix.value) {
         e.preventDefault();
@@ -132,6 +179,18 @@ export default {
       if (e.key === "Escape" && ghostSuffix.value) {
         e.preventDefault();
         ghostSuffix.value = "";
+        return;
+      }
+      if (e.key === "ArrowUp" && atFirstLine()) {
+        e.preventDefault();
+        ghostSuffix.value = "";
+        emit("navigate", "up");
+        return;
+      }
+      if (e.key === "ArrowDown" && atLastLine()) {
+        e.preventDefault();
+        ghostSuffix.value = "";
+        emit("navigate", "down");
         return;
       }
       if (e.key === "Enter" && !e.shiftKey) {
@@ -156,8 +215,23 @@ export default {
       emit("toggle", !props.checked);
     }
 
-    function focusInput() {
-      if (inputRef.value) inputRef.value.focus();
+    function placeCaret(pos) {
+      const el = inputRef.value;
+      if (!el) return;
+      el.focus();
+      const at = pos === "start" ? 0 : el.value.length;
+      el.setSelectionRange(at, at);
+    }
+
+    function focusInput(pos) {
+      // A URL item shows the read-only link view until edited; enter edit
+      // mode first so there's a textarea to focus.
+      if (!inputRef.value && showLinkView.value) {
+        editing.value = true;
+        nextTick(() => placeCaret(pos));
+        return;
+      }
+      placeCaret(pos);
     }
 
     onMounted(() => {
