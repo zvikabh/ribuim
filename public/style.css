@@ -999,6 +999,23 @@ body {
   max-width: 580px;
 }
 
+.pref-range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pref-range-row .form-range {
+  flex: 1;
+}
+
+.pref-range-value {
+  min-width: 1.5em;
+  text-align: center;
+  font-weight: 600;
+  color: #202124;
+}
+
 .pref-swatch {
   display: inline-block;
   width: 10px;

@@ -7,7 +7,8 @@ const { currentUser } = useAuth();
 
 const DEFAULTS = {
   reminderColors: "by-time",
-  screenUsage: "default"
+  screenUsage: "default",
+  maxVisibleItems: 10
 };
 
 const preferences = ref({ ...DEFAULTS });

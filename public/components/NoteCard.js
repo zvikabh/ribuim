@@ -4,6 +4,7 @@ import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import { useUndo } from "../composables/useUndo.js";
 import { useAutocomplete } from "../composables/useAutocomplete.js";
+import { usePreferences } from "../composables/usePreferences.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -27,8 +28,16 @@ export default {
     } = useNotes();
     const { pushUndo } = useUndo();
     const { complete } = useAutocomplete();
+    const { preferences } = usePreferences();
 
-    const MAX_VISIBLE = 7;
+    // N = max items before the note collapses (user-configurable, 5-15).
+    // When collapsed we show N-4 items, so the smallest "+N more" is +5.
+    const collapseThreshold = computed(() => {
+      const n = preferences.value.maxVisibleItems || 10;
+      return Math.min(15, Math.max(5, n));
+    });
+    const visibleCount = computed(() => collapseThreshold.value - 4);
+
     const titleGhost = ref("");
     const titleInputRef = ref(null);
     const uncheckedListRef = ref(null);
@@ -162,7 +171,7 @@ export default {
     });
 
     const totalItems = computed(() => uncheckedItems.value.length + checkedItems.value.length);
-    const shouldCollapse = computed(() => totalItems.value > MAX_VISIBLE);
+    const shouldCollapse = computed(() => totalItems.value > collapseThreshold.value);
 
     const hasItems = computed(() => totalItems.value > 0);
     const allChecked = computed(() =>
@@ -185,7 +194,7 @@ export default {
     const searchForcesExpand = computed(() => {
       const q = searchQuery.value?.trim().toLowerCase();
       if (!q || !shouldCollapse.value) return false;
-      for (const item of uncheckedItems.value.slice(MAX_VISIBLE)) {
+      for (const item of uncheckedItems.value.slice(visibleCount.value)) {
         if ((item.label || "").toLowerCase().includes(q)) return true;
       }
       for (const item of checkedItems.value) {
@@ -198,7 +207,7 @@ export default {
 
     const visibleUnchecked = computed(() => {
       if (!shouldCollapse.value || effectiveExpanded.value) return uncheckedItems.value;
-      return uncheckedItems.value.slice(0, MAX_VISIBLE);
+      return uncheckedItems.value.slice(0, visibleCount.value);
     });
 
     const visibleChecked = computed(() => {

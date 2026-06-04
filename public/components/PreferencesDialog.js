@@ -12,7 +12,17 @@ export default {
       updatePreference("screenUsage", e.target.value);
     }
 
-    return { preferences, dialogOpen, closePreferences, onReminderColors, onScreenUsage };
+    function onMaxVisibleItems(e) {
+      let n = parseInt(e.target.value, 10);
+      if (isNaN(n)) n = 10;
+      n = Math.min(15, Math.max(5, n));
+      updatePreference("maxVisibleItems", n);
+    }
+
+    return {
+      preferences, dialogOpen, closePreferences,
+      onReminderColors, onScreenUsage, onMaxVisibleItems
+    };
   },
   template: `
     <teleport to="body">
@@ -110,6 +120,21 @@ export default {
                       </span>
                     </label>
                   </div>
+                </div>
+
+                <div class="mt-4">
+                  <h6 class="mb-2">Collapse long notes</h6>
+                  <div class="pref-range-row">
+                    <input type="range" min="5" max="15" step="1"
+                           class="form-range"
+                           :value="preferences.maxVisibleItems"
+                           @input="onMaxVisibleItems">
+                    <span class="pref-range-value">{{ preferences.maxVisibleItems }}</span>
+                  </div>
+                  <small class="text-muted">
+                    Notes with more than {{ preferences.maxVisibleItems }} items are collapsed
+                    behind a "show more" button.
+                  </small>
                 </div>
 
               </div>
