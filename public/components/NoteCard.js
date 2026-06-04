@@ -22,7 +22,7 @@ export default {
       notes,
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
       setReminder, clearReminder, markReminderDone,
-      insertItem, deleteItem, restoreItem, setItemChecked, setItemLabel, setItemOrder,
+      insertItem, deleteItem, restoreItem, setItemChecked, setItemsChecked, setItemLabel, setItemOrder,
       newItemId
     } = useNotes();
     const { pushUndo } = useUndo();
@@ -163,6 +163,24 @@ export default {
 
     const totalItems = computed(() => uncheckedItems.value.length + checkedItems.value.length);
     const shouldCollapse = computed(() => totalItems.value > MAX_VISIBLE);
+
+    const hasItems = computed(() => totalItems.value > 0);
+    const allChecked = computed(() =>
+      hasItems.value && uncheckedItems.value.length === 0
+    );
+
+    function onCheckAll() {
+      const items = props.note.items || {};
+      const ids = Object.keys(items);
+      if (!ids.length) return;
+      const target = !allChecked.value;
+      const changed = ids.filter(id => !!items[id].checked !== target);
+      if (!changed.length) return;
+      const noteId = props.note.id;
+      setItemsChecked(noteId, changed, target);
+      pushUndo(target ? "Check all items" : "Uncheck all items",
+        () => setItemsChecked(noteId, changed, !target));
+    }
 
     const searchForcesExpand = computed(() => {
       const q = searchQuery.value?.trim().toLowerCase();
@@ -400,6 +418,7 @@ export default {
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty,
       addNewItem,
+      hasItems, allChecked, onCheckAll,
       isTrashed, isOwner, onTrash, onRestore, onDeletePermanently,
       onSetReminder, onClearReminder, onMarkReminderDone,
       hasActiveReminder, searchQuery, onShare
@@ -482,7 +501,16 @@ export default {
         Show less
       </button>
 
-      <LabelChips v-if="isOwner" :note-id="note.id" :labels="note.labels || []" />
+      <div v-if="hasItems || isOwner" class="note-meta-row">
+        <button v-if="hasItems"
+                class="note-action-btn check-all-btn"
+                @click="onCheckAll"
+                :title="allChecked ? 'Uncheck all items' : 'Check all items'">
+          <i class="bi" :class="allChecked ? 'bi-square' : 'bi-check2-all'"></i>
+          <span>{{ allChecked ? 'Uncheck all' : 'Check all' }}</span>
+        </button>
+        <LabelChips v-if="isOwner" :note-id="note.id" :labels="note.labels || []" />
+      </div>
 
       <SharedWithList v-if="isOwner" :shared-with="note.sharedWith || []" />
 

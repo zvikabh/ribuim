@@ -411,6 +411,18 @@ async function setItemChecked(noteId, itemId, checked) {
   await updateDoc(doc(db, "notes", noteId), update);
 }
 
+// Set the checked state of several items in one write (e.g. "check all").
+async function setItemsChecked(noteId, itemIds, checked) {
+  if (!itemIds || !itemIds.length) return;
+  const update = {};
+  const now = Date.now();
+  for (const itemId of itemIds) {
+    update[`items.${itemId}.checked`] = checked;
+    if (checked) update[`items.${itemId}.checkedAt`] = now;
+  }
+  await updateDoc(doc(db, "notes", noteId), update);
+}
+
 async function setItemLabel(noteId, itemId, label) {
   try {
     await updateDoc(doc(db, "notes", noteId), {
@@ -446,6 +458,7 @@ export function useNotes() {
     deleteItem,
     restoreItem,
     setItemChecked,
+    setItemsChecked,
     setItemLabel,
     setItemOrder,
     addLabel,
