@@ -24,6 +24,7 @@ function checkDueReminders() {
   const now = Date.now();
   for (const note of notes.value) {
     if (!note._isOwner) continue;
+    if (note.trashedAt) continue;
     const due = toMs(note.reminderAt);
     if (!due) continue;
     if (note.reminderDone) continue;
@@ -62,7 +63,7 @@ watch(notes, (current) => {
   }
   for (const note of current) {
     const due = toMs(note.reminderAt);
-    if (!due || note.reminderDone || note.reminderDismissed || due > Date.now()) {
+    if (!due || note.reminderDone || note.reminderDismissed || note.trashedAt || due > Date.now()) {
       if (notifiedNoteIds.has(note.id)) {
         notifiedNoteIds.delete(note.id);
       }
@@ -73,6 +74,7 @@ watch(notes, (current) => {
     if (!note) return false;
     if (note.reminderDone) return false;
     if (note.reminderDismissed) return false;
+    if (note.trashedAt) return false;
     if (!note.reminderAt) return false;
     return true;
   });
@@ -161,6 +163,7 @@ function updateFaviconBadge(hasAlert) {
 const dueNoteCount = computed(() => {
   const now = Date.now();
   return notes.value.filter(n => {
+    if (!n._isOwner || n.trashedAt) return false;
     const due = toMs(n.reminderAt);
     return due && due <= now && !n.reminderDone && !n.reminderDismissed;
   }).length;
