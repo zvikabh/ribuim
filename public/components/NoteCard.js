@@ -3,6 +3,7 @@ import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import { useUndo } from "../composables/useUndo.js";
+import { useAutocomplete } from "../composables/useAutocomplete.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -25,8 +26,10 @@ export default {
       newItemId
     } = useNotes();
     const { pushUndo } = useUndo();
+    const { complete } = useAutocomplete();
 
     const MAX_VISIBLE = 7;
+    const titleGhost = ref("");
     const titleInputRef = ref(null);
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
@@ -50,16 +53,60 @@ export default {
       titleDirty.value = false;
     }
 
-    function onTitleInput(e) {
-      localTitle.value = e.target.value;
+    function updateTitleGhost() {
+      const el = titleInputRef.value;
+      if (!el) { titleGhost.value = ""; return; }
+      const val = el.value;
+      const atEnd = el.selectionStart === val.length && el.selectionEnd === val.length;
+      titleGhost.value = atEnd ? complete(val) : "";
+    }
+
+    function acceptTitleGhost() {
+      if (!titleGhost.value) return;
+      const newVal = localTitle.value + titleGhost.value;
+      localTitle.value = newVal;
+      titleGhost.value = "";
       titleDirty.value = true;
+      nextTick(() => {
+        if (titleInputRef.value) {
+          titleInputRef.value.setSelectionRange(newVal.length, newVal.length);
+        }
+      });
       if (titleTimer) clearTimeout(titleTimer);
       titleTimer = setTimeout(flushTitle, 500);
     }
 
+    function onTitleInput(e) {
+      localTitle.value = e.target.value;
+      titleDirty.value = true;
+      updateTitleGhost();
+      if (titleTimer) clearTimeout(titleTimer);
+      titleTimer = setTimeout(flushTitle, 500);
+    }
+
+    function onTitleSelect() {
+      updateTitleGhost();
+    }
+
+    function onTitleBlur() {
+      titleGhost.value = "";
+      flushTitle();
+    }
+
     async function onTitleKeydown(e) {
+      if (e.key === "Tab" && titleGhost.value) {
+        e.preventDefault();
+        acceptTitleGhost();
+        return;
+      }
+      if (e.key === "Escape" && titleGhost.value) {
+        e.preventDefault();
+        titleGhost.value = "";
+        return;
+      }
       if (e.key !== "Enter") return;
       e.preventDefault();
+      titleGhost.value = "";
       flushTitle();
 
       const firstUnchecked = uncheckedItems.value[0];
@@ -346,7 +393,7 @@ export default {
 
     return {
       titleInputRef, uncheckedListRef,
-      localTitle, onTitleInput, onTitleKeydown, flushTitle, isRtl,
+      localTitle, titleGhost, onTitleInput, onTitleKeydown, onTitleSelect, onTitleBlur, flushTitle, isRtl,
       visibleUnchecked, visibleChecked,
       shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
       setItemRef, pendingFocusId,
@@ -363,14 +410,18 @@ export default {
       <div v-if="searchQuery && note.title" class="note-title-highlight">
         <HighlightText :text="note.title" :query="searchQuery" />
       </div>
-      <input v-else
-             ref="titleInputRef"
-             class="ribuim-input note-title-input"
-             placeholder="Title"
-             :value="localTitle"
-             @input="onTitleInput"
-             @keydown="onTitleKeydown"
-             @blur="flushTitle">
+      <span v-else class="ac-field note-title-field">
+        <div v-if="titleGhost" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localTitle }}</span><span class="ac-ghost-suffix">{{ titleGhost }}</span></div>
+        <input ref="titleInputRef"
+               class="ribuim-input note-title-input"
+               placeholder="Title"
+               :value="localTitle"
+               @input="onTitleInput"
+               @keydown="onTitleKeydown"
+               @click="onTitleSelect"
+               @keyup="onTitleSelect"
+               @blur="onTitleBlur">
+      </span>
 
       <ReminderBadge v-if="isOwner"
                      :reminder-at="note.reminderAt"

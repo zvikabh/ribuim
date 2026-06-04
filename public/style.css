@@ -302,6 +302,18 @@ body {
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+/* When wrapped for autocomplete, the wrapper owns the bottom margin. */
+.note-title-field .note-title-input {
+  margin-bottom: 0;
+}
+
+.note-title-field {
+  margin-bottom: 6px;
 }
 
 .note-title-highlight {
@@ -369,12 +381,65 @@ body {
 }
 
 .item-label-input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   resize: none;
   overflow: hidden;
   line-height: 1.4;
   font-family: inherit;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+/* ---------- Autocomplete ghost text ---------- */
+
+.ac-field {
+  position: relative;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  padding: 2px 0;
+  margin: 0;
+  border: none;
+  font-family: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ac-ghost-typed {
+  color: transparent;
+}
+
+.ac-ghost-suffix {
+  color: #b0b0b0;
+}
+
+.item-label-field .ac-ghost {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.note-title-field {
+  flex: none;
+}
+
+.note-title-field .ac-ghost {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4;
+  white-space: pre;
+  overflow: hidden;
 }
 
 .checklist-delete {

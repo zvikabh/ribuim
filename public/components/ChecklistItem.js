@@ -1,5 +1,6 @@
 import { ref, watch, onBeforeUnmount, onMounted, onUpdated, nextTick } from "vue";
 import HighlightText from "./HighlightText.js";
+import { useAutocomplete } from "../composables/useAutocomplete.js";
 
 export default {
   components: { HighlightText },
@@ -11,10 +12,38 @@ export default {
   },
   emits: ["toggle", "label-change", "delete", "enter-pressed", "backspace-empty"],
   setup(props, { emit }) {
+    const { complete } = useAutocomplete();
     const inputRef = ref(null);
     const localLabel = ref(props.label);
+    const ghostSuffix = ref("");
     const dirty = ref(false);
     let timer = null;
+
+    function updateGhost() {
+      const el = inputRef.value;
+      if (!el) { ghostSuffix.value = ""; return; }
+      const val = el.value;
+      const atEnd = el.selectionStart === val.length && el.selectionEnd === val.length;
+      ghostSuffix.value = atEnd ? complete(val) : "";
+    }
+
+    function acceptGhost() {
+      if (!ghostSuffix.value) return false;
+      const el = inputRef.value;
+      const newVal = (el ? el.value : localLabel.value) + ghostSuffix.value;
+      localLabel.value = newVal;
+      ghostSuffix.value = "";
+      dirty.value = true;
+      nextTick(() => {
+        if (inputRef.value) {
+          inputRef.value.setSelectionRange(newVal.length, newVal.length);
+          autoResize();
+        }
+      });
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, 500);
+      return true;
+    }
 
     let lastWidth = 0;
     let resizeObserver = null;
@@ -59,25 +88,43 @@ export default {
       localLabel.value = e.target.value;
       dirty.value = true;
       autoResize();
+      updateGhost();
       if (timer) clearTimeout(timer);
       timer = setTimeout(flush, 500);
     }
 
     function onBlur() {
+      ghostSuffix.value = "";
       flush();
     }
 
     function onKeydown(e) {
+      if (e.key === "Tab" && ghostSuffix.value) {
+        e.preventDefault();
+        acceptGhost();
+        return;
+      }
+      if (e.key === "Escape" && ghostSuffix.value) {
+        e.preventDefault();
+        ghostSuffix.value = "";
+        return;
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
+        ghostSuffix.value = "";
         flush();
         emit("enter-pressed");
       } else if (e.key === "Enter" && e.shiftKey) {
+        ghostSuffix.value = "";
         nextTick(autoResize);
       } else if (e.key === "Backspace" && localLabel.value === "") {
         e.preventDefault();
         emit("backspace-empty");
       }
+    }
+
+    function onSelect() {
+      updateGhost();
     }
 
     function toggle() {
@@ -108,7 +155,10 @@ export default {
       if (dirty.value) flush();
     });
 
-    return { inputRef, localLabel, onInput, onBlur, onKeydown, toggle, focusInput };
+    return {
+      inputRef, localLabel, ghostSuffix,
+      onInput, onBlur, onKeydown, onSelect, toggle, focusInput
+    };
   },
   template: `
     <span class="checklist-drag-handle" title="Drag to reorder">
@@ -121,15 +171,19 @@ export default {
     <span v-if="searchQuery" class="item-label-display">
       <HighlightText :text="localLabel" :query="searchQuery" />
     </span>
-    <textarea v-else
-              ref="inputRef"
-              rows="1"
-              class="ribuim-input item-label-input"
-              :value="localLabel"
-              @input="onInput"
-              @blur="onBlur"
-              @keydown="onKeydown"
-              placeholder=""></textarea>
+    <span v-else class="ac-field item-label-field">
+      <div v-if="ghostSuffix" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localLabel }}</span><span class="ac-ghost-suffix">{{ ghostSuffix }}</span></div>
+      <textarea ref="inputRef"
+                rows="1"
+                class="ribuim-input item-label-input"
+                :value="localLabel"
+                @input="onInput"
+                @blur="onBlur"
+                @keydown="onKeydown"
+                @click="onSelect"
+                @keyup="onSelect"
+                placeholder=""></textarea>
+    </span>
     <button class="checklist-delete"
             @click="$emit('delete')"
             title="Delete item">
