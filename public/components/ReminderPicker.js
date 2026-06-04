@@ -25,15 +25,52 @@ function timeHintFromTitle(title) {
   return null;
 }
 
+// Hebrew weekday names (ordinal-based). Matched only at the very start of the
+// title, as a whole word (not followed by another Hebrew letter).
+const WEEKDAY_HINTS = [
+  { word: "ראשון", day: 0 },
+  { word: "שני", day: 1 },
+  { word: "שלישי", day: 2 },
+  { word: "רביעי", day: 3 },
+  { word: "חמישי", day: 4 },
+  { word: "שישי", day: 5 },
+  { word: "שבת", day: 6 }
+];
+
+function weekdayHintFromTitle(title) {
+  const t = (title || "").trim();
+  for (const { word, day } of WEEKDAY_HINTS) {
+    const re = new RegExp("^" + word + "(?![\\u05D0-\\u05EA])");
+    if (re.test(t)) return day;
+  }
+  return null;
+}
+
 function defaultReminderInputValue(title) {
-  const hint = timeHintFromTitle(title);
-  if (hint) {
-    const d = new Date();
-    d.setHours(hint.h, hint.m, 0, 0);
-    if (d <= new Date()) d.setDate(d.getDate() + 1);
+  const time = timeHintFromTitle(title);
+  const weekday = weekdayHintFromTitle(title);
+  const now = new Date();
+
+  if (weekday !== null) {
+    // Next occurrence of the named weekday, at the hinted time (default 8:00).
+    const h = time ? time.h : 8;
+    const m = time ? time.m : 0;
+    const d = new Date(now);
+    d.setHours(h, m, 0, 0);
+    while (d.getDay() !== weekday || d <= now) {
+      d.setDate(d.getDate() + 1);
+    }
     return toLocalInputValue(d);
   }
-  const d = new Date();
+
+  if (time) {
+    const d = new Date(now);
+    d.setHours(time.h, time.m, 0, 0);
+    if (d <= now) d.setDate(d.getDate() + 1);
+    return toLocalInputValue(d);
+  }
+
+  const d = new Date(now);
   d.setHours(d.getHours() + 1, 0, 0, 0);
   return toLocalInputValue(d);
 }
