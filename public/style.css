@@ -619,32 +619,6 @@ body {
 
 /* ---------- Labels ---------- */
 
-.note-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* The meta row owns the top border/spacing; its children must not add their own. */
-.note-meta-row .note-labels,
-.note-meta-row .note-label-add-empty {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-}
-
-.check-all-btn {
-  flex: none;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .note-labels {
   display: flex;
   flex-wrap: wrap;

@@ -501,16 +501,7 @@ export default {
         Show less
       </button>
 
-      <div v-if="hasItems || isOwner" class="note-meta-row">
-        <button v-if="hasItems"
-                class="note-action-btn check-all-btn"
-                @click="onCheckAll"
-                :title="allChecked ? 'Uncheck all items' : 'Check all items'">
-          <i class="bi" :class="allChecked ? 'bi-square' : 'bi-check2-all'"></i>
-          <span>{{ allChecked ? 'Uncheck all' : 'Check all' }}</span>
-        </button>
-        <LabelChips v-if="isOwner" :note-id="note.id" :labels="note.labels || []" />
-      </div>
+      <LabelChips v-if="isOwner" :note-id="note.id" :labels="note.labels || []" />
 
       <SharedWithList v-if="isOwner" :shared-with="note.sharedWith || []" />
 
@@ -530,6 +521,13 @@ export default {
         </button>
       </div>
       <div v-else class="note-actions" dir="ltr">
+        <button v-if="hasItems"
+                class="note-action-btn"
+                @click="onCheckAll"
+                :title="allChecked ? 'Uncheck all items' : 'Check all items'">
+          <i class="bi" :class="allChecked ? 'bi-square' : 'bi-check2-all'"></i>
+          <span class="d-none d-sm-inline">{{ allChecked ? 'Uncheck all' : 'Check all' }}</span>
+        </button>
         <ReminderPicker v-if="isOwner"
                         :reminder-at="note.reminderAt"
                         :reminder-recurrence="note.reminderRecurrence"
