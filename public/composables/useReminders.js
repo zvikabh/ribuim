@@ -69,13 +69,19 @@ watch(notes, (current) => {
       }
     }
   }
+  // A banner is valid only while the note still has a currently-due
+  // reminder. Mirror the conditions in checkDueReminders so that, e.g.,
+  // marking a recurring reminder Done on another device (which advances
+  // reminderAt to a future occurrence) clears the banner here too.
   activeBanners.value = activeBanners.value.filter(b => {
     const note = current.find(n => n.id === b.id);
     if (!note) return false;
+    if (!note._isOwner) return false;
+    if (note.trashedAt) return false;
     if (note.reminderDone) return false;
     if (note.reminderDismissed) return false;
-    if (note.trashedAt) return false;
-    if (!note.reminderAt) return false;
+    const due = toMs(note.reminderAt);
+    if (!due || due > Date.now()) return false;
     return true;
   });
 
