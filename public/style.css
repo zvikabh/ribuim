@@ -335,6 +335,23 @@ body {
   word-break: break-word;
 }
 
+/* Linkified read-only view: clicking the text (not a link) starts editing. */
+.item-label-linkview {
+  cursor: text;
+}
+
+.item-link {
+  color: #1a73e8;
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.checklist-item.is-checked .item-label-display {
+  text-decoration: line-through;
+  color: #777;
+}
+
 /* ---------- Checklist items ---------- */
 
 .checklist {

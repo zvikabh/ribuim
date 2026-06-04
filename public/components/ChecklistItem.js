@@ -1,9 +1,12 @@
-import { ref, watch, onBeforeUnmount, onMounted, onUpdated, nextTick } from "vue";
+import { ref, computed, watch, onBeforeUnmount, onMounted, onUpdated, nextTick } from "vue";
 import HighlightText from "./HighlightText.js";
+import LinkifiedText from "./LinkifiedText.js";
 import { useAutocomplete } from "../composables/useAutocomplete.js";
 
+const URL_RE = /https?:\/\/\S/;
+
 export default {
-  components: { HighlightText },
+  components: { HighlightText, LinkifiedText },
   props: {
     label: { type: String, default: "" },
     checked: { type: Boolean, default: false },
@@ -17,7 +20,28 @@ export default {
     const localLabel = ref(props.label);
     const ghostSuffix = ref("");
     const dirty = ref(false);
+    const editing = ref(false);
     let timer = null;
+
+    // When an item contains a URL, show a read-only linkified view (so the
+    // link is clickable) until the user clicks into it to edit.
+    const hasUrl = computed(() => URL_RE.test(localLabel.value || ""));
+    const showLinkView = computed(() =>
+      !props.searchQuery && !editing.value && hasUrl.value
+    );
+
+    function startEditing() {
+      editing.value = true;
+      nextTick(() => {
+        const el = inputRef.value;
+        if (el) {
+          el.focus();
+          const len = el.value.length;
+          el.setSelectionRange(len, len);
+          autoResize();
+        }
+      });
+    }
 
     function updateGhost() {
       const el = inputRef.value;
@@ -95,6 +119,7 @@ export default {
 
     function onBlur() {
       ghostSuffix.value = "";
+      editing.value = false;
       flush();
     }
 
@@ -156,8 +181,8 @@ export default {
     });
 
     return {
-      inputRef, localLabel, ghostSuffix,
-      onInput, onBlur, onKeydown, onSelect, toggle, focusInput
+      inputRef, localLabel, ghostSuffix, showLinkView,
+      onInput, onBlur, onKeydown, onSelect, toggle, focusInput, startEditing
     };
   },
   template: `
@@ -170,6 +195,9 @@ export default {
            @change="toggle">
     <span v-if="searchQuery" class="item-label-display">
       <HighlightText :text="localLabel" :query="searchQuery" />
+    </span>
+    <span v-else-if="showLinkView" class="item-label-display item-label-linkview" @click="startEditing">
+      <LinkifiedText :text="localLabel" />
     </span>
     <span v-else class="ac-field item-label-field">
       <div v-if="ghostSuffix" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localLabel }}</span><span class="ac-ghost-suffix">{{ ghostSuffix }}</span></div>
