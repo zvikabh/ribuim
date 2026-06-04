@@ -403,9 +403,12 @@ async function restoreItem(noteId, itemId, label, checked, position) {
 }
 
 async function setItemChecked(noteId, itemId, checked) {
-  await updateDoc(doc(db, "notes", noteId), {
-    [`items.${itemId}.checked`]: checked
-  });
+  const update = { [`items.${itemId}.checked`]: checked };
+  // Record when the item was checked so the checked list can order
+  // most-recently-checked items at the bottom. itemOrder is left
+  // untouched, so unchecking returns the item to its original position.
+  if (checked) update[`items.${itemId}.checkedAt`] = Date.now();
+  await updateDoc(doc(db, "notes", noteId), update);
 }
 
 async function setItemLabel(noteId, itemId, label) {

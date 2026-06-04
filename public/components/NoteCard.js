@@ -108,6 +108,9 @@ export default {
       for (const id of order) {
         if (items[id] && items[id].checked) out.push({ id, ...items[id] });
       }
+      // Most-recently-checked items sink to the bottom. Built in itemOrder
+      // first so legacy items without checkedAt keep a stable relative order.
+      out.sort((a, b) => (a.checkedAt || 0) - (b.checkedAt || 0));
       return out;
     });
 
