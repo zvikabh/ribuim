@@ -21,6 +21,7 @@ export default {
 
     const gridRef = ref(null);
     const numCols = ref(1);
+    const heights = ref({});
     let resizeObserver = null;
 
     const gridPadding = computed(() => preferences.value.screenUsage === "cluttered" ? 4 : 16);
@@ -36,12 +37,23 @@ export default {
 
     watch([gridPadding, colGap], updateCols);
 
+    let lastObservedWidth = 0;
     watch(gridRef, (el) => {
       if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
       if (el) {
-        resizeObserver = new ResizeObserver(updateCols);
+        lastObservedWidth = 0;
+        // Only react to width changes. Re-measuring alters the grid's height,
+        // so observing height too would loop.
+        resizeObserver = new ResizeObserver((entries) => {
+          const w = entries[0].contentRect.width;
+          if (Math.abs(w - lastObservedWidth) < 1) return;
+          lastObservedWidth = w;
+          updateCols();
+          nextTick(measureHeights);
+        });
         resizeObserver.observe(el);
         updateCols();
+        nextTick(measureHeights);
       }
     }, { flush: "post" });
 
@@ -63,6 +75,7 @@ export default {
       return rtlCount > notes.length / 2;
     });
 
+    // Rough fallback used only until a note has been measured in the DOM.
     function estimateNoteHeight(note) {
       let h = 90;
       if (note.title) h += 30;
@@ -75,19 +88,75 @@ export default {
       return h;
     }
 
+    function noteHeight(note) {
+      const m = heights.value[note.id];
+      return (m && m > 0) ? m : estimateNoteHeight(note);
+    }
+
+    // Banded column fill: keeps reading order == sort order while staying
+    // flush. First row gets one note per column (in order); then each round
+    // fills every column (leading to trailing) down to the previous round's
+    // lowest point, so rounds form disjoint top-to-bottom bands. Within a
+    // band, earlier notes are in leading-or-higher positions; across bands,
+    // later notes are strictly lower — together satisfying the invariant.
     const columns = computed(() => {
       const n = numCols.value;
+      const notes = filteredNotes.value;
+      const gap = colGap.value;
       const cols = Array.from({ length: n }, () => []);
-      const colHeights = new Array(n).fill(0);
-      for (const note of filteredNotes.value) {
-        let minIdx = 0;
-        for (let i = 1; i < n; i++) {
-          if (colHeights[i] < colHeights[minIdx]) minIdx = i;
+      const bottoms = new Array(n).fill(0);
+      let i = 0;
+
+      for (let c = 0; c < n && i < notes.length; c++, i++) {
+        cols[c].push(notes[i]);
+        bottoms[c] = noteHeight(notes[i]);
+      }
+      let baseline = bottoms.length ? Math.max(...bottoms) : 0;
+
+      while (i < notes.length) {
+        let added = 0;
+        for (let c = 0; c < n && i < notes.length; c++) {
+          while (i < notes.length && bottoms[c] < baseline) {
+            cols[c].push(notes[i]);
+            bottoms[c] += gap + noteHeight(notes[i]);
+            i++;
+            added++;
+          }
         }
-        cols[minIdx].push(note);
-        colHeights[minIdx] += estimateNoteHeight(note);
+        // Guarantee progress when every column already sits on the baseline.
+        if (added === 0 && i < notes.length) {
+          cols[0].push(notes[i]);
+          bottoms[0] += gap + noteHeight(notes[i]);
+          i++;
+        }
+        baseline = Math.max(...bottoms);
       }
       return cols;
+    });
+
+    // Measure rendered note heights so the banded fill uses true heights.
+    // Width is fixed by numCols, so a note's height doesn't depend on which
+    // column it lands in; one measurement pass after a layout change converges.
+    function measureHeights() {
+      const el = gridRef.value;
+      if (!el) return;
+      const next = { ...heights.value };
+      let changed = false;
+      el.querySelectorAll("[data-note-id]").forEach((node) => {
+        const id = node.dataset.noteId;
+        const h = node.offsetHeight;
+        if (h && Math.abs((next[id] || 0) - h) > 0.5) {
+          next[id] = h;
+          changed = true;
+        }
+      });
+      if (changed) heights.value = next;
+    }
+
+    // Re-measure when the note set or column geometry changes. This watch is
+    // not triggered by `heights` itself, so updating heights doesn't loop.
+    watch([filteredNotes, numCols, colGap], () => {
+      nextTick(measureHeights);
     });
 
     function scrollToAndHighlight(noteId) {
