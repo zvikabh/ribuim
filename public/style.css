@@ -122,6 +122,13 @@ body {
   font-weight: 500;
 }
 
+.ribuim-add-note {
+  color: #202124;
+  font-weight: 600;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
 .ribuim-sidebar-item .bi {
   font-size: 1.05rem;
   flex-shrink: 0;
@@ -240,6 +247,24 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.column-add-note {
+  border: none;
+  background: none;
+  color: #d0d0d0;
+  cursor: pointer;
+  padding: 6px 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.column-add-note:hover {
+  background: rgba(0, 0, 0, 0.03);
+  color: #9aa0a6;
 }
 
 .note-card {
@@ -916,32 +941,6 @@ body {
 .google-g {
   width: 18px;
   height: 18px;
-}
-
-/* ---------- Create note FAB ---------- */
-
-.create-note-fab {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--ribuim-accent);
-  color: #202124;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  font-size: 1.5rem;
-  cursor: pointer;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.create-note-fab:hover {
-  background: #f9a825;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
 /* ---------- Empty state ---------- */

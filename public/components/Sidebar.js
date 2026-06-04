@@ -3,6 +3,7 @@ import { useView } from "../composables/useView.js";
 import { useImport } from "../composables/useImport.js";
 import { usePreferences } from "../composables/usePreferences.js";
 import { useUndo } from "../composables/useUndo.js";
+import { useCreateNote } from "../composables/useCreateNote.js";
 
 export default {
   setup() {
@@ -10,6 +11,12 @@ export default {
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
     const { canUndo, lastAction, undo } = useUndo();
+    const { createNoteAction } = useCreateNote();
+
+    function addNote() {
+      createNoteAction();
+      closeSidebar();
+    }
 
     function isActive(view) {
       const c = currentView.value;
@@ -31,7 +38,7 @@ export default {
     return {
       currentView, sidebarOpen, allLabels, trashCount, searchQuery,
       setView, closeSidebar, isActive, openImport, openPreferences,
-      canUndo, lastAction, undo
+      canUndo, lastAction, undo, addNote
     };
   },
   template: `
@@ -78,6 +85,10 @@ export default {
         </template>
 
         <div class="ribuim-sidebar-section">Tools</div>
+        <button class="ribuim-sidebar-item ribuim-add-note" @click="addNote">
+          <i class="bi bi-plus-lg"></i>
+          <span>Add note</span>
+        </button>
         <div class="ribuim-sidebar-search">
           <i class="bi bi-search"></i>
           <input type="text"

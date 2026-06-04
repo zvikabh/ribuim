@@ -2,7 +2,7 @@ import { ref, computed, watch, onBeforeUnmount, nextTick } from "vue";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import { usePreferences } from "../composables/usePreferences.js";
-import { useUndo } from "../composables/useUndo.js";
+import { useCreateNote } from "../composables/useCreateNote.js";
 import NoteCard from "./NoteCard.js";
 
 const MIN_COL_WIDTH = 280;
@@ -10,10 +10,14 @@ const MIN_COL_WIDTH = 280;
 export default {
   components: { NoteCard },
   setup() {
-    const { loading, createNote, addLabel, trashNote } = useNotes();
-    const { currentView, currentViewLabel, filteredNotes, setView } = useView();
+    const { loading } = useNotes();
+    const { currentView, currentViewLabel, filteredNotes } = useView();
     const { preferences } = usePreferences();
-    const { pushUndo } = useUndo();
+    const { createNoteAction, pendingScrollId } = useCreateNote();
+
+    const showColumnAdd = computed(() =>
+      currentView.value.type !== "trash" && currentView.value.type !== "shared"
+    );
 
     const gridRef = ref(null);
     const numCols = ref(1);
@@ -97,28 +101,23 @@ export default {
       }, { once: true });
     }
 
-    async function handleCreate() {
-      const view = currentView.value;
-      const id = await createNote();
+    // A new note (created from the sidebar's "Add note") gets scrolled into
+    // view, highlighted, and its title focused once it renders here.
+    watch(pendingScrollId, async (id) => {
       if (!id) return;
-      if (view.type === "label") {
-        await addLabel(id, view.value);
-      } else if (view.type !== "all") {
-        setView({ type: "all" });
-      }
-      pushUndo("Create note", () => trashNote(id));
       await nextTick();
       setTimeout(() => {
         scrollToAndHighlight(id);
         const titleInput = gridRef.value?.querySelector(`[data-note-id="${id}"] .note-title-input`);
         if (titleInput) titleInput.focus();
+        pendingScrollId.value = null;
       }, 150);
-    }
+    });
 
     return {
       loading, currentView, currentViewLabel, filteredNotes,
       gridRef, columns, gridRtl,
-      handleCreate
+      showColumnAdd, addNote: createNoteAction
     };
   },
   template: `
@@ -148,13 +147,14 @@ export default {
           <div v-for="note in col" :key="note.id" :data-note-id="note.id">
             <NoteCard :note="note" />
           </div>
+          <button v-if="showColumnAdd"
+                  class="column-add-note"
+                  @click="addNote"
+                  title="Add note">
+            <i class="bi bi-plus-lg"></i>
+          </button>
         </div>
       </div>
-
-      <button v-if="currentView.type !== 'trash'"
-              class="create-note-fab" @click="handleCreate" title="New note">
-        <i class="bi bi-plus-lg"></i>
-      </button>
     </div>
   `
 };
