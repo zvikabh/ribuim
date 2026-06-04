@@ -447,6 +447,13 @@ export default {
                      :reminder-done="note.reminderDone"
                      :reminder-recurrence="note.reminderRecurrence" />
 
+      <button v-if="shouldCollapse && expanded"
+              class="checklist-toggle"
+              @click="toggleExpanded">
+        <i class="bi bi-chevron-up"></i>
+        Show less
+      </button>
+
       <ul ref="uncheckedListRef" class="checklist">
         <li v-for="item in visibleUnchecked"
             :key="item.id"
