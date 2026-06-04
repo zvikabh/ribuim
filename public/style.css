@@ -995,6 +995,10 @@ body {
 
 /* ---------- Preferences dialog ---------- */
 
+.pref-dialog {
+  max-width: 580px;
+}
+
 .pref-swatch {
   display: inline-block;
   width: 10px;
