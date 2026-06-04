@@ -95,6 +95,12 @@ export default {
                  class="ribuim-search-input"
                  placeholder="Search"
                  v-model="searchQuery">
+          <button v-if="searchQuery"
+                  class="ribuim-search-clear"
+                  @click="searchQuery = ''"
+                  title="Clear search">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
         <button class="ribuim-sidebar-item"
                 :disabled="!canUndo"
