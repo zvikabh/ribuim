@@ -58,9 +58,14 @@ export default {
     const editing = ref(false);
     let timer = null;
 
-    // When an item contains a URL, show a read-only linkified view (so the
-    // link is clickable) until the user clicks into it to edit.
+    // Read-only views are shown until the user clicks in to edit:
+    //  - search highlight while a search is active,
+    //  - linkified view when the item contains a URL.
+    // `editing` takes precedence over both so items remain editable.
     const hasUrl = computed(() => URL_RE.test(localLabel.value || ""));
+    const showSearchView = computed(() =>
+      !!props.searchQuery && !editing.value
+    );
     const showLinkView = computed(() =>
       !props.searchQuery && !editing.value && hasUrl.value
     );
@@ -224,9 +229,9 @@ export default {
     }
 
     function focusInput(pos) {
-      // A URL item shows the read-only link view until edited; enter edit
-      // mode first so there's a textarea to focus.
-      if (!inputRef.value && showLinkView.value) {
+      // In a read-only view (search highlight or URL link) there's no textarea
+      // yet; enter edit mode first so there's one to focus.
+      if (!inputRef.value) {
         editing.value = true;
         nextTick(() => placeCaret(pos));
         return;
@@ -255,7 +260,7 @@ export default {
     });
 
     return {
-      inputRef, localLabel, ghostSuffix, showLinkView,
+      inputRef, localLabel, ghostSuffix, showSearchView, showLinkView,
       onInput, onBlur, onKeydown, onSelect, toggle, focusInput, startEditing
     };
   },
@@ -267,7 +272,7 @@ export default {
            class="form-check-input checklist-checkbox"
            :checked="checked"
            @change="toggle">
-    <span v-if="searchQuery" class="item-label-display">
+    <span v-if="showSearchView" class="item-label-display item-label-linkview" @click="startEditing">
       <HighlightText :text="localLabel" :query="searchQuery" />
     </span>
     <span v-else-if="showLinkView" class="item-label-display item-label-linkview" @click="startEditing">
