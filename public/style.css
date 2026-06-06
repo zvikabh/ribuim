@@ -253,12 +253,22 @@ body {
 
 /* ---------- Card grid ---------- */
 
+/* Stacks any number of .note-grid regions vertically; `gap` is the single,
+   controllable space between consecutive regions, and the vertical padding
+   is the outer top/bottom space. */
+.note-grid-regions {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
 .note-grid {
   display: flex;
   gap: 12px;
-  padding: 16px;
-  max-width: 1600px;
-  margin: 0 auto;
+  padding: 0 16px;
 }
 
 .note-grid-col {
@@ -992,10 +1002,15 @@ body {
 
 /* ---------- Cluttered mode ---------- */
 
-.cluttered .note-grid {
-  padding: 4px;
-  gap: 4px;
+.cluttered .note-grid-regions {
   max-width: none;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.cluttered .note-grid {
+  padding: 0 4px;
+  gap: 4px;
 }
 
 .cluttered .note-grid-col {
@@ -1003,8 +1018,12 @@ body {
 }
 
 @media (max-width: 600px) {
+  .cluttered .note-grid-regions {
+    gap: 2px;
+    padding: 2px 0;
+  }
   .cluttered .note-grid {
-    padding: 2px;
+    padding: 0 2px;
     gap: 2px;
   }
   .cluttered .note-grid-col {

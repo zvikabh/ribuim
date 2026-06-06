@@ -105,6 +105,9 @@ const activeNotes = computed(() => notes.value.filter(n => !n.trashedAt));
 
 const sortedNotes = computed(() => {
   const toMs = (ts) => ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0;
+  // Non-reminder notes sort by "effective" date: doneAt if the note's reminder
+  // was just marked Done (so it surfaces at the top), else its creation time.
+  const effective = (n) => toMs(n.doneAt) || toMs(n.createdAt);
 
   const withReminder = activeNotes.value
     .filter(n => n.reminderAt && !n.reminderDone)
@@ -112,7 +115,7 @@ const sortedNotes = computed(() => {
 
   const withoutReminder = activeNotes.value
     .filter(n => !n.reminderAt || n.reminderDone)
-    .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
+    .sort((a, b) => effective(b) - effective(a));
 
   return [...withReminder, ...withoutReminder];
 });
@@ -337,7 +340,12 @@ async function markReminderDone(noteId) {
   const note = notes.value.find(n => n.id === noteId);
   const recurrence = note?.reminderRecurrence;
   if (!isRecurring(recurrence)) {
-    await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
+    // No longer a reminder: stamp doneAt so it sorts to the top of the
+    // non-reminder area (createdAt is immutable, so we can't change that).
+    await updateDoc(doc(db, "notes", noteId), {
+      reminderDone: true,
+      doneAt: Timestamp.now()
+    });
     return;
   }
   const template = note?.reminderAt && typeof note.reminderAt.toDate === "function"
@@ -346,7 +354,10 @@ async function markReminderDone(noteId) {
   const reference = template && template.getTime() > now.getTime() ? template : now;
   const next = nextOccurrenceAfter(reference, recurrence, template);
   if (!next) {
-    await updateDoc(doc(db, "notes", noteId), { reminderDone: true });
+    await updateDoc(doc(db, "notes", noteId), {
+      reminderDone: true,
+      doneAt: Timestamp.now()
+    });
     return;
   }
   const update = {

@@ -99,9 +99,8 @@ export default {
     // lowest point, so rounds form disjoint top-to-bottom bands. Within a
     // band, earlier notes are in leading-or-higher positions; across bands,
     // later notes are strictly lower — together satisfying the invariant.
-    const columns = computed(() => {
+    function distribute(notes) {
       const n = numCols.value;
-      const notes = filteredNotes.value;
       const gap = colGap.value;
       const cols = Array.from({ length: n }, () => []);
       const bottoms = new Array(n).fill(0);
@@ -132,7 +131,26 @@ export default {
         baseline = Math.max(...bottoms);
       }
       return cols;
-    });
+    }
+
+    // Reminders form a separate region above the rest. A note is an active
+    // reminder only for its owner (shared/trashed notes never qualify).
+    function isActiveReminder(note) {
+      return note._isOwner !== false && !note.trashedAt
+        && note.reminderAt && !note.reminderDone;
+    }
+
+    const reminderNotes = computed(() => filteredNotes.value.filter(isActiveReminder));
+    const otherNotes = computed(() => filteredNotes.value.filter(n => !isActiveReminder(n)));
+
+    const reminderColumns = computed(() => distribute(reminderNotes.value));
+    const otherColumns = computed(() => distribute(otherNotes.value));
+
+    const showRemindersRegion = computed(() => reminderNotes.value.length > 0);
+    const showOthersRegion = computed(() =>
+      otherNotes.value.length > 0 ||
+      (showColumnAdd.value && currentView.value.type !== "reminders")
+    );
 
     // Measure rendered note heights so the banded fill uses true heights.
     // Width is fixed by numCols, so a note's height doesn't depend on which
@@ -185,7 +203,9 @@ export default {
 
     return {
       loading, currentView, currentViewLabel, filteredNotes,
-      gridRef, columns, gridRtl,
+      gridRef, gridRtl,
+      reminderColumns, otherColumns,
+      showRemindersRegion, showOthersRegion,
       showColumnAdd, addNote: createNoteAction
     };
   },
@@ -211,17 +231,27 @@ export default {
         No notes in <strong>{{ currentViewLabel }}</strong>.
       </div>
 
-      <div v-else ref="gridRef" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
-        <div v-for="(col, ci) in columns" :key="ci" class="note-grid-col">
-          <div v-for="note in col" :key="note.id" :data-note-id="note.id">
-            <NoteCard :note="note" />
+      <div v-else ref="gridRef" class="note-grid-regions">
+        <div v-if="showRemindersRegion" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
+          <div v-for="(col, ci) in reminderColumns" :key="'r' + ci" class="note-grid-col">
+            <div v-for="note in col" :key="note.id" :data-note-id="note.id">
+              <NoteCard :note="note" />
+            </div>
           </div>
-          <button v-if="showColumnAdd"
-                  class="column-add-note"
-                  @click="addNote"
-                  title="Add note">
-            <i class="bi bi-plus-lg"></i>
-          </button>
+        </div>
+
+        <div v-if="showOthersRegion" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
+          <div v-for="(col, ci) in otherColumns" :key="'o' + ci" class="note-grid-col">
+            <div v-for="note in col" :key="note.id" :data-note-id="note.id">
+              <NoteCard :note="note" />
+            </div>
+            <button v-if="showColumnAdd"
+                    class="column-add-note"
+                    @click="addNote"
+                    title="Add note">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
