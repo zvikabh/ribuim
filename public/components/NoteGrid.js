@@ -140,17 +140,29 @@ export default {
         && note.reminderAt && !note.reminderDone;
     }
 
-    const reminderNotes = computed(() => filteredNotes.value.filter(isActiveReminder));
-    const otherNotes = computed(() => filteredNotes.value.filter(n => !isActiveReminder(n)));
-
-    const reminderColumns = computed(() => distribute(reminderNotes.value));
-    const otherColumns = computed(() => distribute(otherNotes.value));
-
-    const showRemindersRegion = computed(() => reminderNotes.value.length > 0);
-    const showOthersRegion = computed(() =>
-      otherNotes.value.length > 0 ||
-      (showColumnAdd.value && currentView.value.type !== "reminders")
-    );
+    // Notes are split into up to four stacked regions, in this order:
+    // pinned reminders, pinned others, reminders, others. Each is distributed
+    // independently with the same banded fill. The unpinned "others" region
+    // also hosts the add-note "+" columns (and renders even when empty so the
+    // "+" is available, except in the reminders-only view).
+    const regions = computed(() => {
+      const fn = filteredNotes.value;
+      const pinned = (n) => !!n.pinned;
+      const defs = [
+        { key: "pinned-reminders", notes: fn.filter(n => pinned(n) && isActiveReminder(n)) },
+        { key: "pinned-others", notes: fn.filter(n => pinned(n) && !isActiveReminder(n)) },
+        { key: "reminders", notes: fn.filter(n => !pinned(n) && isActiveReminder(n)) },
+        { key: "others", notes: fn.filter(n => !pinned(n) && !isActiveReminder(n)) }
+      ];
+      const out = [];
+      for (const d of defs) {
+        const keepEmptyForAdd = d.key === "others"
+          && showColumnAdd.value && currentView.value.type !== "reminders";
+        if (d.notes.length === 0 && !keepEmptyForAdd) continue;
+        out.push({ key: d.key, columns: distribute(d.notes) });
+      }
+      return out;
+    });
 
     // Measure rendered note heights so the banded fill uses true heights.
     // Width is fixed by numCols, so a note's height doesn't depend on which
@@ -203,9 +215,7 @@ export default {
 
     return {
       loading, currentView, currentViewLabel, filteredNotes,
-      gridRef, gridRtl,
-      reminderColumns, otherColumns,
-      showRemindersRegion, showOthersRegion,
+      gridRef, gridRtl, regions,
       showColumnAdd, addNote: createNoteAction
     };
   },
@@ -232,20 +242,16 @@ export default {
       </div>
 
       <div v-else ref="gridRef" class="note-grid-regions">
-        <div v-if="showRemindersRegion" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
-          <div v-for="(col, ci) in reminderColumns" :key="'r' + ci" class="note-grid-col">
+        <div v-for="region in regions"
+             :key="region.key"
+             class="note-grid"
+             :class="'region-' + region.key"
+             :dir="gridRtl ? 'rtl' : 'ltr'">
+          <div v-for="(col, ci) in region.columns" :key="ci" class="note-grid-col">
             <div v-for="note in col" :key="note.id" :data-note-id="note.id">
               <NoteCard :note="note" />
             </div>
-          </div>
-        </div>
-
-        <div v-if="showOthersRegion" class="note-grid" :dir="gridRtl ? 'rtl' : 'ltr'">
-          <div v-for="(col, ci) in otherColumns" :key="'o' + ci" class="note-grid-col">
-            <div v-for="note in col" :key="note.id" :data-note-id="note.id">
-              <NoteCard :note="note" />
-            </div>
-            <button v-if="showColumnAdd"
+            <button v-if="showColumnAdd && region.key === 'others'"
                     class="column-add-note"
                     @click="addNote"
                     title="Add note">

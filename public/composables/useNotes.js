@@ -149,9 +149,18 @@ async function createNote() {
     items: {},
     itemOrder: [],
     labels: [],
-    sharedWith: []
+    sharedWith: [],
+    pinned: false
   });
   return docRef.id;
+}
+
+async function setPinned(noteId, pinned) {
+  try {
+    await updateDoc(doc(db, "notes", noteId), { pinned });
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
 }
 
 async function shareNote(noteId, email) {
@@ -476,6 +485,7 @@ export function useNotes() {
     removeLabel,
     shareNote,
     unshareNote,
+    setPinned,
     newItemId,
     parseRecurrence,
     isRecurring

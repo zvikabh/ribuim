@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUpdated, onBeforeUnmount, nextTick } from "vue";
 import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
@@ -24,7 +24,7 @@ export default {
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
       setReminder, clearReminder, markReminderDone,
       insertItem, deleteItem, restoreItem, setItemChecked, setItemsChecked, setItemLabel, setItemOrder,
-      newItemId
+      newItemId, setPinned
     } = useNotes();
     const { pushUndo } = useUndo();
     const { complete } = useAutocomplete();
@@ -49,9 +49,22 @@ export default {
     const titleDirty = ref(false);
     let titleTimer = null;
     let sortable = null;
+    let titleResizeObserver = null;
+    let titleLastWidth = 0;
+
+    // The title is a textarea so long titles wrap; grow it to fit its content.
+    function titleAutoResize() {
+      const el = titleInputRef.value;
+      if (!el) return;
+      el.style.height = "0";
+      el.style.height = el.scrollHeight + "px";
+    }
 
     watch(() => props.note.title, (newVal) => {
-      if (!titleDirty.value) localTitle.value = newVal || "";
+      if (!titleDirty.value) {
+        localTitle.value = newVal || "";
+        nextTick(titleAutoResize);
+      }
     });
 
     function flushTitle() {
@@ -79,6 +92,7 @@ export default {
       nextTick(() => {
         if (titleInputRef.value) {
           titleInputRef.value.setSelectionRange(newVal.length, newVal.length);
+          titleAutoResize();
         }
       });
       if (titleTimer) clearTimeout(titleTimer);
@@ -88,6 +102,7 @@ export default {
     function onTitleInput(e) {
       localTitle.value = e.target.value;
       titleDirty.value = true;
+      titleAutoResize();
       updateTitleGhost();
       if (titleTimer) clearTimeout(titleTimer);
       titleTimer = setTimeout(flushTitle, 500);
@@ -391,10 +406,34 @@ export default {
           onEnd: onDragEnd
         });
       }
+      titleAutoResize();
+      const titleEl = titleInputRef.value;
+      if (titleEl) {
+        titleResizeObserver = new ResizeObserver(() => {
+          const w = titleEl.clientWidth;
+          if (w !== titleLastWidth) { titleLastWidth = w; titleAutoResize(); }
+        });
+        titleResizeObserver.observe(titleEl);
+      }
+    });
+
+    // The title textarea isn't rendered in search mode; set up its observer
+    // (and size it) once it appears.
+    onUpdated(() => {
+      const titleEl = titleInputRef.value;
+      if (titleEl && !titleResizeObserver) {
+        titleAutoResize();
+        titleResizeObserver = new ResizeObserver(() => {
+          const w = titleEl.clientWidth;
+          if (w !== titleLastWidth) { titleLastWidth = w; titleAutoResize(); }
+        });
+        titleResizeObserver.observe(titleEl);
+      }
     });
 
     onBeforeUnmount(() => {
       if (sortable) { sortable.destroy(); sortable = null; }
+      if (titleResizeObserver) { titleResizeObserver.disconnect(); titleResizeObserver = null; }
       if (titleTimer) clearTimeout(titleTimer);
       if (titleDirty.value) flushTitle();
     });
@@ -405,6 +444,14 @@ export default {
 
     function onShare() {
       openShareDialog(props.note);
+    }
+
+    function onTogglePin() {
+      const noteId = props.note.id;
+      const target = !props.note.pinned;
+      setPinned(noteId, target);
+      pushUndo(target ? "Pin note" : "Unpin note",
+        () => setPinned(noteId, !target));
     }
 
     function onTrash() {
@@ -456,19 +503,27 @@ export default {
       onItemEnterPressed, onItemBackspaceEmpty, onItemNavigate,
       addNewItem,
       hasItems, allChecked, onCheckAll,
-      isTrashed, isOwner, onTrash, onRestore, onDeletePermanently,
+      isTrashed, isOwner, onTrash, onRestore, onDeletePermanently, onTogglePin,
       onSetReminder, onClearReminder, onMarkReminderDone,
       hasActiveReminder, searchQuery, onShare
     };
   },
   template: `
     <div class="note-card" :dir="isRtl ? 'rtl' : 'ltr'">
+      <button v-if="isOwner && !isTrashed"
+              class="note-pin"
+              :class="{ pinned: note.pinned }"
+              @click="onTogglePin"
+              :title="note.pinned ? 'Unpin' : 'Pin'">
+        <i class="bi" :class="note.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
+      </button>
       <div v-if="searchQuery && note.title" class="note-title-highlight">
         <HighlightText :text="note.title" :query="searchQuery" />
       </div>
       <span v-else class="ac-field note-title-field">
         <div v-if="titleGhost" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localTitle }}</span><span class="ac-ghost-suffix">{{ titleGhost }}</span></div>
-        <input ref="titleInputRef"
+        <textarea ref="titleInputRef"
+               rows="1"
                class="ribuim-input note-title-input"
                placeholder="Title"
                :value="localTitle"
@@ -476,7 +531,7 @@ export default {
                @keydown="onTitleKeydown"
                @click="onTitleSelect"
                @keyup="onTitleSelect"
-               @blur="onTitleBlur">
+               @blur="onTitleBlur"></textarea>
       </span>
 
       <ReminderBadge v-if="isOwner"

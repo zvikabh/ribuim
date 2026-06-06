@@ -298,12 +298,45 @@ body {
 }
 
 .note-card {
+  position: relative;
   background: var(--ribuim-card-bg);
   border: 1px solid var(--ribuim-border);
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.15s;
+}
+
+/* Pin toggle in the top corner (top-right LTR, top-left RTL via logical inset). */
+.note-pin {
+  position: absolute;
+  top: 14px;            /* card padding (12) + input padding (2) */
+  inset-inline-end: 6px;
+  height: 1.4rem;       /* one title line, so the icon centers on it */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  border: none;
+  background: none;
+  padding: 0 2px;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 0.95rem;
+}
+
+.note-pin:hover {
+  color: #666;
+}
+
+.note-pin.pinned {
+  color: var(--ribuim-accent);
+}
+
+/* Reserve space so a long title doesn't run under the pin. */
+.note-title-field,
+.note-title-highlight {
+  padding-inline-end: 22px;
 }
 
 .note-card:hover {
@@ -328,8 +361,12 @@ body {
 }
 
 @media (max-width: 600px) {
+  .note-grid-regions {
+    gap: 8px;
+    padding: 8px 0;
+  }
   .note-grid {
-    padding: 8px;
+    padding: 0 8px;
     gap: 8px;
   }
   .note-grid-col {
@@ -356,10 +393,14 @@ body {
 .note-title-input {
   font-weight: 600;
   font-size: 1rem;
+  line-height: 1.4;
   margin-bottom: 6px;
   position: relative;
   z-index: 1;
   background: transparent;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
 }
 
 /* When wrapped for autocomplete, the wrapper owns the bottom margin. */
@@ -510,8 +551,9 @@ body {
   font-weight: 600;
   font-size: 1rem;
   line-height: 1.4;
-  white-space: pre;
-  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .checklist-delete {
