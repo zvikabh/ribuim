@@ -687,6 +687,13 @@ export default {
         </button>
       </div>
       <div v-else class="note-actions" dir="ltr">
+        <button v-if="isOwner && hasActiveReminder"
+                class="note-action-btn note-done-btn"
+                @click="onMarkReminderDone"
+                title="Mark reminder done">
+          <i class="bi bi-check2"></i>
+          <span>Done</span>
+        </button>
         <button v-if="hasItems"
                 class="note-action-btn"
                 @click="onCheckAll"
@@ -700,13 +707,6 @@ export default {
                         :note-title="note.title"
                         @set="onSetReminder"
                         @clear="onClearReminder" />
-        <button v-if="isOwner && hasActiveReminder"
-                class="note-action-btn"
-                @click="onMarkReminderDone"
-                title="Mark reminder done">
-          <i class="bi bi-check2"></i>
-          <span class="d-none d-sm-inline">Done</span>
-        </button>
         <button v-if="isOwner"
                 class="note-action-btn"
                 @click="onShare"

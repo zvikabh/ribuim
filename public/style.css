@@ -681,6 +681,20 @@ body {
   margin-right: 4px;
 }
 
+/* The reminder "Done" button is the primary action: a light-blue pill. */
+.note-action-btn.note-done-btn {
+  background: #d6e9ff;
+  color: #1a5fb4;
+  border-radius: 16px;
+  padding: 4px 14px;
+  font-weight: 500;
+}
+
+.note-action-btn.note-done-btn:hover {
+  background: #c2dcff;
+  color: #14488c;
+}
+
 /* ---------- Reminder badge ---------- */
 
 .reminder-badge {
