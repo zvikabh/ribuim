@@ -69,8 +69,8 @@ export default {
       const pastDue = date.value.getTime() < now.value;
       if (mode === "no-colors") return "no-color";
       if (mode === "by-day") {
-        // Past-due reminders are bright red, as in the default scheme.
-        return pastDue ? "past" : DAY_CLASSES[date.value.getDay()];
+        // Past-due reminders are bright red (its own shade in this scheme).
+        return pastDue ? "day-past" : DAY_CLASSES[date.value.getDay()];
       }
       const diff = date.value.getTime() - now.value;
       if (diff < 0) return "past";

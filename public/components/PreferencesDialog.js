@@ -77,7 +77,7 @@ export default {
                           <span class="pref-swatch" style="background:#D296FF"></span> Thu
                           <span class="pref-swatch" style="background:#FFEB4D"></span> Fri
                           <span class="pref-swatch" style="background:#D1D1D1"></span> Sat
-                          <span class="pref-swatch" style="background:#d93025"></span> Past due
+                          <span class="pref-swatch" style="background:#F26150"></span> Past due
                         </small>
                       </span>
                     </label>

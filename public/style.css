@@ -689,6 +689,7 @@ body {
 .reminder-badge.day-thu { background: #D296FF; }
 .reminder-badge.day-fri { background: #FFEB4D; color: #202124; }
 .reminder-badge.day-sat { background: #D1D1D1; color: #202124; }
+.reminder-badge.day-past { background: #F26150; }
 
 .reminder-badge.no-color { background: #f4b400; color: #202124; }
 
@@ -1282,4 +1283,11 @@ body {
 
 .offline-banner .bi {
   font-size: 0.95rem;
+}
+
+/* ---------- Checkboxes ---------- */
+
+.form-check-input:checked {
+  background-color: #82B5FF;
+  border-color: #82B5FF;
 }
