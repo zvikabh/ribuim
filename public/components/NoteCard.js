@@ -18,7 +18,8 @@ export default {
   props: {
     note: { type: Object, required: true }
   },
-  setup(props) {
+  emits: ["layout-change"],
+  setup(props, { emit }) {
     const {
       notes,
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
@@ -289,6 +290,11 @@ export default {
     function expandToFull() { mode.value = "expanded"; }
     function collapseFromExpanded() { mode.value = hasMiddle.value ? "middle" : "collapsed"; }
     function collapseFromMiddle() { mode.value = "collapsed"; }
+
+    // Expanding/collapsing changes this card's height but touches no note data,
+    // so the grid wouldn't otherwise know to re-measure and reflow. Signal it
+    // once the new height has rendered.
+    watch(mode, () => { nextTick(() => emit("layout-change")); });
 
     function setItemRef(itemId, instance) {
       if (instance) itemRefs.value[itemId] = instance;

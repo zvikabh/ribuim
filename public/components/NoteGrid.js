@@ -189,6 +189,12 @@ export default {
       nextTick(measureHeights);
     });
 
+    // A card changed height without any note-data change (expand/collapse).
+    // Re-measure so the banded layout reflows.
+    function onCardLayoutChange() {
+      nextTick(measureHeights);
+    }
+
     function scrollToAndHighlight(noteId) {
       const el = gridRef.value?.querySelector(`[data-note-id="${noteId}"]`);
       if (!el) return;
@@ -215,7 +221,7 @@ export default {
 
     return {
       loading, currentView, currentViewLabel, filteredNotes,
-      gridRef, gridRtl, regions,
+      gridRef, gridRtl, regions, onCardLayoutChange,
       showColumnAdd, addNote: createNoteAction
     };
   },
@@ -249,7 +255,7 @@ export default {
              :dir="gridRtl ? 'rtl' : 'ltr'">
           <div v-for="(col, ci) in region.columns" :key="ci" class="note-grid-col">
             <div v-for="note in col" :key="note.id" :data-note-id="note.id">
-              <NoteCard :note="note" />
+              <NoteCard :note="note" @layout-change="onCardLayoutChange" />
             </div>
             <button v-if="showColumnAdd && region.key === 'others'"
                     class="column-add-note"
