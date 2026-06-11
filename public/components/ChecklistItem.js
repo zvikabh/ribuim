@@ -100,6 +100,9 @@ export default {
       dirty.value = true;
       nextTick(() => {
         if (inputRef.value) {
+          // Keep focus on the input (matters for the tap-to-accept path,
+          // where the tap target is the ghost span, not the input itself).
+          inputRef.value.focus();
           inputRef.value.setSelectionRange(newVal.length, newVal.length);
           autoResize();
         }
@@ -107,6 +110,13 @@ export default {
       if (timer) clearTimeout(timer);
       timer = setTimeout(flush, 500);
       return true;
+    }
+
+    // Tap-to-accept (mobile, where there's no Tab key). pointerdown fires
+    // before the input would blur; preventing default keeps focus on it.
+    function onGhostTap(e) {
+      e.preventDefault();
+      acceptGhost();
     }
 
     let lastWidth = 0;
@@ -261,7 +271,7 @@ export default {
 
     return {
       inputRef, localLabel, ghostSuffix, showSearchView, showLinkView,
-      onInput, onBlur, onKeydown, onSelect, toggle, focusInput, startEditing
+      onInput, onBlur, onKeydown, onSelect, toggle, focusInput, startEditing, onGhostTap
     };
   },
   template: `
@@ -279,7 +289,7 @@ export default {
       <LinkifiedText :text="localLabel" />
     </span>
     <span v-else class="ac-field item-label-field">
-      <div v-if="ghostSuffix" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localLabel }}</span><span class="ac-ghost-suffix">{{ ghostSuffix }}</span></div>
+      <div v-if="ghostSuffix" class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localLabel }}</span><span class="ac-ghost-suffix" @pointerdown="onGhostTap" title="Tap to accept">{{ ghostSuffix }}</span></div>
       <textarea ref="inputRef"
                 rows="1"
                 class="ribuim-input item-label-input"

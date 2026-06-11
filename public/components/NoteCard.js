@@ -94,12 +94,22 @@ export default {
       titleDirty.value = true;
       nextTick(() => {
         if (titleInputRef.value) {
+          // Keep focus on the input (matters for the tap-to-accept path,
+          // where the tap target is the ghost span, not the input itself).
+          titleInputRef.value.focus();
           titleInputRef.value.setSelectionRange(newVal.length, newVal.length);
           titleAutoResize();
         }
       });
       if (titleTimer) clearTimeout(titleTimer);
       titleTimer = setTimeout(flushTitle, 500);
+    }
+
+    // Tap-to-accept (mobile, where there's no Tab key). pointerdown fires
+    // before the input would blur; preventing default keeps focus on it.
+    function onTitleGhostTap(e) {
+      e.preventDefault();
+      acceptTitleGhost();
     }
 
     function onTitleInput(e) {
@@ -551,6 +561,7 @@ export default {
     return {
       titleInputRef, uncheckedListRef,
       localTitle, titleGhost, onTitleInput, onTitleKeydown, onTitleSelect, onTitleBlur, flushTitle, isRtl,
+      onTitleGhostTap,
       visibleUnchecked, visibleChecked,
       shouldCollapse, collapseControls, hiddenTotal,
       collapsedLinkLabel, checkedLinkLabel,
@@ -578,7 +589,7 @@ export default {
         <HighlightText :text="note.title" :query="searchQuery" />
       </div>
       <span v-else class="ac-field note-title-field">
-        <div v-if="titleGhost" class="ac-ghost" aria-hidden="true"><span class="ac-ghost-typed">{{ localTitle }}</span><span class="ac-ghost-suffix">{{ titleGhost }}</span></div>
+        <div v-if="titleGhost" class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localTitle }}</span><span class="ac-ghost-suffix" @pointerdown="onTitleGhostTap" title="Tap to accept">{{ titleGhost }}</span></div>
         <textarea ref="titleInputRef"
                rows="1"
                class="ribuim-input note-title-input"

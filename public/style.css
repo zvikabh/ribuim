@@ -536,6 +536,11 @@ body {
 
 .ac-ghost-suffix {
   color: #b0b0b0;
+  /* Re-enable taps on just the suffix so it can be tapped to accept the
+     completion (mobile has no Tab key); the rest of the ghost overlay stays
+     click-through to the input beneath it. */
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .item-label-field .ac-ghost {
