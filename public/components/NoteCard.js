@@ -43,7 +43,9 @@ export default {
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
     const pendingFocusId = ref(null);
-    const expanded = ref(false);
+    // Collapse state machine: "collapsed" (few unchecked, no checked),
+    // "middle" (all unchecked, no checked), "expanded" (everything).
+    const mode = ref("collapsed");
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -218,15 +220,40 @@ export default {
       return false;
     });
 
-    const effectiveExpanded = computed(() => expanded.value || searchForcesExpand.value);
+    const checkedCount = computed(() => checkedItems.value.length);
+
+    // Unchecked items hidden while in the "collapsed" mode.
+    const hiddenUncheckedCollapsed = computed(() =>
+      Math.max(0, uncheckedItems.value.length - visibleCount.value)
+    );
+
+    // The "middle" mode (all unchecked shown, checked still hidden) is a
+    // distinct step only when collapsing actually hides some unchecked items
+    // AND there are checked items left to hide. Otherwise collapsed already
+    // shows every unchecked item (or there are no checked items), so we fall
+    // back to just two modes.
+    const hasMiddle = computed(() =>
+      shouldCollapse.value && checkedCount.value > 0 && hiddenUncheckedCollapsed.value > 0
+    );
+
+    // Resolve the active mode: search always forces a full expansion; a stale
+    // "middle" (note changed so it no longer exists) snaps to expanded.
+    const effectiveMode = computed(() => {
+      if (!shouldCollapse.value) return "expanded";
+      if (searchForcesExpand.value) return "expanded";
+      if (mode.value === "middle" && !hasMiddle.value) return "expanded";
+      return mode.value;
+    });
 
     const visibleUnchecked = computed(() => {
-      if (!shouldCollapse.value || effectiveExpanded.value) return uncheckedItems.value;
-      return uncheckedItems.value.slice(0, visibleCount.value);
+      if (effectiveMode.value === "collapsed") {
+        return uncheckedItems.value.slice(0, visibleCount.value);
+      }
+      return uncheckedItems.value;
     });
 
     const visibleChecked = computed(() => {
-      if (!shouldCollapse.value || effectiveExpanded.value) return checkedItems.value;
+      if (effectiveMode.value === "expanded") return checkedItems.value;
       return [];
     });
 
@@ -234,19 +261,34 @@ export default {
     const hiddenChecked = computed(() => checkedItems.value.length - visibleChecked.value.length);
     const hiddenTotal = computed(() => hiddenUnchecked.value + hiddenChecked.value);
 
-    const collapseLabel = computed(() => {
+    const LRM = "\u200e";
+
+    // Single expand link shown in collapsed mode. It describes everything that
+    // is hidden, even when clicking only reveals the unchecked items (the
+    // middle step); the checked count still tells the user what remains.
+    const collapsedLinkLabel = computed(() => {
       const hu = hiddenUnchecked.value;
       const hc = hiddenChecked.value;
-      const LRM = "\u200e";
-      if (hu > 0 && hc > 0) return `${LRM}+ ${hu} unchecked and ${hc} checked items`;
+      if (hu > 0 && hc > 0) return `${LRM}+ ${hu} unchecked items and + ${hc} checked items`;
       if (hu > 0) return `${LRM}+ ${hu} more items`;
       if (hc > 0) return `${LRM}+ ${hc} checked items`;
       return "";
     });
 
-    function toggleExpanded() {
-      expanded.value = !expanded.value;
-    }
+    const checkedLinkLabel = computed(() => `${LRM}+ ${checkedCount.value} checked items`);
+
+    // Which collapse controls to render. Search forcing a full expand hides
+    // them entirely (the user is searching, not browsing).
+    const collapseControls = computed(() => {
+      if (!shouldCollapse.value || searchForcesExpand.value) return "none";
+      return effectiveMode.value;
+    });
+
+    // Mode transitions.
+    function expandFromCollapsed() { mode.value = hasMiddle.value ? "middle" : "expanded"; }
+    function expandToFull() { mode.value = "expanded"; }
+    function collapseFromExpanded() { mode.value = hasMiddle.value ? "middle" : "collapsed"; }
+    function collapseFromMiddle() { mode.value = "collapsed"; }
 
     function setItemRef(itemId, instance) {
       if (instance) itemRefs.value[itemId] = instance;
@@ -279,8 +321,9 @@ export default {
         }
       }
 
-      if (shouldCollapse.value && !expanded.value) {
-        expanded.value = true;
+      // The new item is unchecked, so make sure unchecked items are all shown.
+      if (effectiveMode.value === "collapsed") {
+        mode.value = hasMiddle.value ? "middle" : "expanded";
       }
 
       // Optimistic local mutation. We can't wait for the Firestore listener
@@ -499,7 +542,9 @@ export default {
       titleInputRef, uncheckedListRef,
       localTitle, titleGhost, onTitleInput, onTitleKeydown, onTitleSelect, onTitleBlur, flushTitle, isRtl,
       visibleUnchecked, visibleChecked,
-      shouldCollapse, expanded, hiddenTotal, collapseLabel, toggleExpanded,
+      shouldCollapse, collapseControls, hiddenTotal,
+      collapsedLinkLabel, checkedLinkLabel,
+      expandFromCollapsed, expandToFull, collapseFromExpanded, collapseFromMiddle,
       setItemRef, pendingFocusId,
       onItemToggle, onItemLabelChange, onItemDelete,
       onItemEnterPressed, onItemBackspaceEmpty, onItemNavigate,
@@ -541,9 +586,9 @@ export default {
                      :reminder-done="note.reminderDone"
                      :reminder-recurrence="note.reminderRecurrence" />
 
-      <button v-if="shouldCollapse && expanded"
+      <button v-if="collapseControls === 'expanded'"
               class="checklist-toggle"
-              @click="toggleExpanded">
+              @click="collapseFromExpanded">
         <i class="bi bi-chevron-up"></i>
         Show less
       </button>
@@ -568,12 +613,24 @@ export default {
         </li>
       </ul>
 
-      <button v-if="shouldCollapse && !expanded && hiddenTotal > 0"
+      <button v-if="collapseControls === 'collapsed' && hiddenTotal > 0"
               class="checklist-toggle"
-              @click="toggleExpanded">
+              @click="expandFromCollapsed">
         <i class="bi bi-chevron-down"></i>
-        {{ collapseLabel }}
+        {{ collapsedLinkLabel }}
       </button>
+
+      <div v-else-if="collapseControls === 'middle'" class="checklist-toggle-row">
+        <button class="checklist-toggle" @click="expandToFull">
+          <i class="bi bi-chevron-down"></i>
+          {{ checkedLinkLabel }}
+        </button>
+        <span class="checklist-toggle-sep">·</span>
+        <button class="checklist-toggle" @click="collapseFromMiddle">
+          <i class="bi bi-chevron-up"></i>
+          Show less
+        </button>
+      </div>
 
       <button class="add-item-row note-action-btn" @click="() => addNewItem()">
         <i class="bi bi-plus-lg add-item-icon"></i>
@@ -597,9 +654,9 @@ export default {
         </li>
       </ul>
 
-      <button v-if="shouldCollapse && expanded"
+      <button v-if="collapseControls === 'expanded'"
               class="checklist-toggle"
-              @click="toggleExpanded">
+              @click="collapseFromExpanded">
         <i class="bi bi-chevron-up"></i>
         Show less
       </button>

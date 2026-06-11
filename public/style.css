@@ -598,6 +598,23 @@ body {
   font-size: 0.75rem;
 }
 
+/* Middle-mode controls: "+N checked items" · "Show less" on one line. */
+.checklist-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checklist-toggle-row .checklist-toggle {
+  width: auto;
+}
+
+.checklist-toggle-sep {
+  color: #bbb;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
 /* SortableJS ghost/drag states */
 .sortable-ghost {
   opacity: 0.4;
@@ -703,7 +720,8 @@ body {
   text-align: right;
 }
 
-.note-card[dir="rtl"] .checklist-toggle {
+.note-card[dir="rtl"] .checklist-toggle,
+.note-card[dir="rtl"] .checklist-toggle-row {
   direction: rtl;
 }
 
