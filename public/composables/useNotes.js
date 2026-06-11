@@ -183,6 +183,18 @@ function newItemId() {
   return "item_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+// Pinning is per-user: pinnedBy holds the emails of users who pinned the note.
+// For backwards compatibility, a note that predates this (no pinnedBy field)
+// falls back to the old global `pinned` boolean, which only ever reflected the
+// creator's pin (pinning used to be owner-only).
+function isPinnedForMe(note) {
+  const email = currentUser.value?.email;
+  if (!email) return false;
+  if (Array.isArray(note.pinnedBy) && note.pinnedBy.includes(email)) return true;
+  // Legacy fallback: the old global `pinned` flag was the creator's pin.
+  return note.pinned === true && note.ownerEmail === email;
+}
+
 async function createNote() {
   const email = currentUser.value?.email;
   if (!email) return null;
@@ -199,14 +211,28 @@ async function createNote() {
     itemOrder: [],
     labels: [],
     sharedWith: [],
-    pinned: false
+    pinnedBy: []
   });
   return docRef.id;
 }
 
+// Pin/unpin the note for the current user only (adds/removes their email from
+// pinnedBy). Creating pinnedBy on first write means the legacy global `pinned`
+// flag is thereafter ignored for that note (see isPinnedForMe).
 async function setPinned(noteId, pinned) {
+  const email = currentUser.value?.email;
+  if (!email) return;
+  const note = notes.value.find(n => n.id === noteId);
+  const update = {
+    pinnedBy: pinned ? arrayUnion(email) : arrayRemove(email)
+  };
+  // If the creator is unpinning a legacy note, also clear the old global flag
+  // (which the read still honors for the creator) so it actually unpins.
+  if (!pinned && note && note.pinned === true && note.ownerEmail === email) {
+    update.pinned = false;
+  }
   try {
-    await updateDoc(doc(db, "notes", noteId), { pinned });
+    await updateDoc(doc(db, "notes", noteId), update);
   } catch (err) {
     if (err.code !== "not-found") throw err;
   }
@@ -535,6 +561,7 @@ export function useNotes() {
     shareNote,
     unshareNote,
     setPinned,
+    isPinnedForMe,
     newItemId,
     parseRecurrence,
     isRecurring

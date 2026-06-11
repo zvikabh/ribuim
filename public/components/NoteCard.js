@@ -24,7 +24,7 @@ export default {
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
       setReminder, clearReminder, markReminderDone,
       insertItem, deleteItem, restoreItem, setItemChecked, setItemsChecked, setItemLabel, setItemOrder,
-      newItemId, setPinned
+      newItemId, setPinned, isPinnedForMe
     } = useNotes();
     const { pushUndo } = useUndo();
     const { complete } = useAutocomplete();
@@ -446,9 +446,11 @@ export default {
       openShareDialog(props.note);
     }
 
+    const isPinned = computed(() => isPinnedForMe(props.note));
+
     function onTogglePin() {
       const noteId = props.note.id;
-      const target = !props.note.pinned;
+      const target = !isPinned.value;
       setPinned(noteId, target);
       pushUndo(target ? "Pin note" : "Unpin note",
         () => setPinned(noteId, !target));
@@ -503,19 +505,19 @@ export default {
       onItemEnterPressed, onItemBackspaceEmpty, onItemNavigate,
       addNewItem,
       hasItems, allChecked, onCheckAll,
-      isTrashed, isOwner, onTrash, onRestore, onDeletePermanently, onTogglePin,
+      isTrashed, isOwner, onTrash, onRestore, onDeletePermanently, onTogglePin, isPinned,
       onSetReminder, onClearReminder, onMarkReminderDone,
       hasActiveReminder, searchQuery, onShare
     };
   },
   template: `
     <div class="note-card" :dir="isRtl ? 'rtl' : 'ltr'">
-      <button v-if="isOwner && !isTrashed"
+      <button v-if="!isTrashed"
               class="note-pin"
-              :class="{ pinned: note.pinned }"
+              :class="{ pinned: isPinned }"
               @click="onTogglePin"
-              :title="note.pinned ? 'Unpin' : 'Pin'">
-        <i class="bi" :class="note.pinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
+              :title="isPinned ? 'Unpin' : 'Pin'">
+        <i class="bi" :class="isPinned ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
       </button>
       <div v-if="searchQuery && note.title" class="note-title-highlight">
         <HighlightText :text="note.title" :query="searchQuery" />

@@ -10,7 +10,7 @@ const MIN_COL_WIDTH = 280;
 export default {
   components: { NoteCard },
   setup() {
-    const { loading } = useNotes();
+    const { loading, isPinnedForMe } = useNotes();
     const { currentView, currentViewLabel, filteredNotes } = useView();
     const { preferences } = usePreferences();
     const { createNoteAction, pendingScrollId } = useCreateNote();
@@ -147,7 +147,7 @@ export default {
     // "+" is available, except in the reminders-only view).
     const regions = computed(() => {
       const fn = filteredNotes.value;
-      const pinned = (n) => !!n.pinned;
+      const pinned = (n) => isPinnedForMe(n);
       const defs = [
         { key: "pinned-reminders", notes: fn.filter(n => pinned(n) && isActiveReminder(n)) },
         { key: "pinned-others", notes: fn.filter(n => pinned(n) && !isActiveReminder(n)) },
