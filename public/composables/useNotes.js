@@ -420,45 +420,73 @@ async function clearReminder(noteId) {
   });
 }
 
-async function markReminderDone(noteId) {
+// Mark a reminder done. Returns a `restore` object (the inverse update) so the
+// caller can register an undo; the write is fired without awaiting so undo can
+// be registered immediately even while offline. Returns null if there's
+// nothing to do.
+function markReminderDone(noteId) {
   const note = notes.value.find(n => n.id === noteId);
+  if (!note) return null;
   const recurrence = note?.reminderRecurrence;
-  if (!isRecurring(recurrence)) {
-    // No longer a reminder: stamp doneAt so it sorts to the top of the
-    // non-reminder area (createdAt is immutable, so we can't change that).
-    await updateDoc(doc(db, "notes", noteId), {
-      reminderDone: true,
-      doneAt: Timestamp.now()
+
+  // Previous value of a top-level field, or deleteField() to remove it on undo.
+  const prev = (key) => (note[key] !== undefined ? note[key] : deleteField());
+
+  const fire = (update, restore) => {
+    updateDoc(doc(db, "notes", noteId), update).catch((err) => {
+      if (err?.code !== "not-found") console.error("markReminderDone failed:", err);
     });
-    return;
-  }
+    return restore;
+  };
+
+  // No longer a reminder: stamp doneAt so it sorts to the top of the
+  // non-reminder area (createdAt is immutable, so we can't change that).
+  const finish = () => fire(
+    { reminderDone: true, doneAt: Timestamp.now() },
+    { reminderDone: prev("reminderDone"), doneAt: prev("doneAt") }
+  );
+
+  if (!isRecurring(recurrence)) return finish();
+
   const template = note?.reminderAt && typeof note.reminderAt.toDate === "function"
     ? note.reminderAt.toDate() : null;
   const now = new Date();
   const reference = template && template.getTime() > now.getTime() ? template : now;
   const next = nextOccurrenceAfter(reference, recurrence, template);
-  if (!next) {
-    await updateDoc(doc(db, "notes", noteId), {
-      reminderDone: true,
-      doneAt: Timestamp.now()
-    });
-    return;
-  }
+  if (!next) return finish();
+
   const update = {
     reminderAt: Timestamp.fromDate(next),
     reminderDone: false,
     reminderDismissed: false,
     notificationSent: false
   };
+  const restore = {
+    reminderAt: prev("reminderAt"),
+    reminderDone: prev("reminderDone"),
+    reminderDismissed: prev("reminderDismissed"),
+    notificationSent: prev("notificationSent")
+  };
   const items = note?.items;
   if (items && typeof items === "object") {
     for (const itemId of Object.keys(items)) {
       if (items[itemId]?.checked) {
         update[`items.${itemId}.checked`] = false;
+        restore[`items.${itemId}.checked`] = true;
       }
     }
   }
-  await updateDoc(doc(db, "notes", noteId), update);
+  return fire(update, restore);
+}
+
+// Reverse a markReminderDone() using the restore object it returned.
+async function restoreReminder(noteId, restore) {
+  if (!restore) return;
+  try {
+    await updateDoc(doc(db, "notes", noteId), restore);
+  } catch (err) {
+    if (err?.code !== "not-found") throw err;
+  }
 }
 
 async function addItem(noteId, label = "") {
@@ -548,6 +576,7 @@ export function useNotes() {
     clearReminder,
     dismissReminder,
     markReminderDone,
+    restoreReminder,
     addItem,
     insertItem,
     deleteItem,

@@ -23,7 +23,7 @@ export default {
     const {
       notes,
       updateTitle, trashNote, restoreNote, deleteNotePermanently,
-      setReminder, clearReminder, markReminderDone,
+      setReminder, clearReminder, markReminderDone, restoreReminder,
       insertItem, deleteItem, restoreItem, setItemChecked, setItemsChecked, setItemLabel, setItemOrder,
       newItemId, setPinned, isPinnedForMe
     } = useNotes();
@@ -530,7 +530,11 @@ export default {
     }
 
     function onMarkReminderDone() {
-      markReminderDone(props.note.id);
+      const noteId = props.note.id;
+      const restore = markReminderDone(noteId);
+      if (restore) {
+        pushUndo("Mark reminder done", () => restoreReminder(noteId, restore));
+      }
     }
 
     const hasActiveReminder = computed(() =>
