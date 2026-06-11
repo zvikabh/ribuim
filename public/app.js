@@ -13,9 +13,10 @@ import Sidebar from "./components/Sidebar.js";
 import ImportDialog from "./components/ImportDialog.js";
 import PreferencesDialog from "./components/PreferencesDialog.js";
 import ShareDialog from "./components/ShareDialog.js";
+import OfflineBanner from "./components/OfflineBanner.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog, ShareDialog },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog, ShareDialog, OfflineBanner },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
@@ -76,6 +77,7 @@ const App = {
     </template>
 
     <ConfirmDialog />
+    <OfflineBanner />
   `
 };
 

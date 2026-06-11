@@ -16,8 +16,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase-init.js";
 import { useAuth } from "./useAuth.js";
+import { useConnectivity } from "./useConnectivity.js";
 
 const { currentUser } = useAuth();
+const { markSynced } = useConnectivity();
 
 const notes = ref([]);
 const loading = ref(false);
@@ -25,6 +27,7 @@ const accessDenied = ref(false);
 
 let unsubOwned = null;
 let unsubShared = null;
+let listenerGen = 0;
 const ownedNotes = new Map();
 const sharedNotes = new Map();
 
@@ -57,38 +60,84 @@ function startListener(email) {
   stopListener();
   loading.value = true;
   accessDenied.value = false;
+  const gen = ++listenerGen;
   let ownedReady = false, sharedReady = false;
 
-  const q1 = query(collection(db, "notes"), where("ownerEmail", "==", email));
-  unsubOwned = onSnapshot(q1,
-    (snapshot) => {
-      applyDocChanges(ownedNotes, snapshot, email);
-      ownedReady = true;
-      if (ownedReady && sharedReady) loading.value = false;
-    },
-    (error) => {
-      loading.value = false;
-      if (error.code === "permission-denied") accessDenied.value = true;
-      else console.error("Owned notes listener error:", error);
+  function markReady(isOwned) {
+    if (isOwned) ownedReady = true; else sharedReady = true;
+    if (ownedReady && sharedReady) loading.value = false;
+  }
+
+  // Subscribe to a query and automatically re-subscribe (with exponential
+  // backoff) if the stream hits a terminal error. Transient network drops are
+  // already handled internally by the SDK and don't reach the error callback;
+  // this guards the rarer terminal errors (token expiry, backend closing the
+  // stream, etc.) that would otherwise silently stop this device from syncing
+  // until a full page reload. Returns a cleanup function.
+  function subscribe(q, map, isOwned) {
+    let backoff = 1000;
+    let retryTimer = null;
+    let unsub = null;
+
+    function attach() {
+      let fresh = true;
+      unsub = onSnapshot(q,
+        (snapshot) => {
+          if (gen !== listenerGen) return;
+          backoff = 1000; // a successful snapshot resets the backoff
+          if (!snapshot.metadata.fromCache) markSynced();
+          if (fresh) {
+            // A fresh (re-)subscription's first snapshot is the authoritative
+            // full result set. Rebuild the map from it so any docs deleted
+            // while we were detached are dropped (incremental docChanges from
+            // a new listener never report those removals).
+            map.clear();
+            snapshot.forEach((d) => map.set(d.id, d.data()));
+            fresh = false;
+            mergeNotes(email);
+          } else {
+            applyDocChanges(map, snapshot, email);
+          }
+          markReady(isOwned);
+        },
+        (error) => {
+          if (gen !== listenerGen) return;
+          if (error.code === "permission-denied") {
+            // Genuine access loss — not retryable.
+            if (isOwned) accessDenied.value = true;
+            markReady(isOwned);
+            return;
+          }
+          console.warn("Notes listener error, will retry:", error);
+          markReady(isOwned); // don't leave the UI stuck on "Loading…"
+          if (retryTimer) clearTimeout(retryTimer);
+          retryTimer = setTimeout(() => {
+            if (gen !== listenerGen) return;
+            attach();
+          }, backoff);
+          backoff = Math.min(backoff * 2, 30000);
+        }
+      );
     }
-  );
+
+    attach();
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      if (unsub) unsub();
+    };
+  }
+
+  const q1 = query(collection(db, "notes"), where("ownerEmail", "==", email));
+  unsubOwned = subscribe(q1, ownedNotes, true);
 
   const q2 = query(collection(db, "notes"), where("sharedWith", "array-contains", email));
-  unsubShared = onSnapshot(q2,
-    (snapshot) => {
-      applyDocChanges(sharedNotes, snapshot, email);
-      sharedReady = true;
-      if (ownedReady && sharedReady) loading.value = false;
-    },
-    (error) => {
-      console.warn("Shared notes listener error:", error);
-      sharedReady = true;
-      if (ownedReady && sharedReady) loading.value = false;
-    }
-  );
+  unsubShared = subscribe(q2, sharedNotes, false);
 }
 
 function stopListener() {
+  // Invalidate any in-flight retry/callback from the previous subscription.
+  listenerGen++;
   if (unsubOwned) { unsubOwned(); unsubOwned = null; }
   if (unsubShared) { unsubShared(); unsubShared = null; }
   ownedNotes.clear();

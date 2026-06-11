@@ -1260,3 +1260,26 @@ body {
   color: #444;
   white-space: nowrap;
 }
+
+/* ---------- Offline banner ---------- */
+
+.offline-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #5f6368;
+  color: #fff;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.offline-banner .bi {
+  font-size: 0.95rem;
+}
