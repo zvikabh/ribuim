@@ -3,8 +3,9 @@ import { useNotes } from "./useNotes.js";
 import { useView } from "./useView.js";
 import { useUndo } from "./useUndo.js";
 
-// Set to the id of a freshly created note so the grid can scroll to,
-// highlight, and focus it. The grid clears this after handling it.
+// A request for the grid to scroll to and highlight a note: { id, focus }.
+// `focus` puts the cursor in the title (used for freshly created notes). The
+// grid clears this after handling it.
 const pendingScrollId = ref(null);
 
 export function useCreateNote() {
@@ -22,9 +23,16 @@ export function useCreateNote() {
       setView({ type: "all" });
     }
     pushUndo("Create note", () => trashNote(id));
-    pendingScrollId.value = id;
+    pendingScrollId.value = { id, focus: true };
     return id;
   }
 
-  return { createNoteAction, pendingScrollId };
+  // Ask the grid to scroll to and highlight an existing note after it moves
+  // (e.g. when a reminder is added and it jumps to the reminders region).
+  // Defaults to not stealing focus into the title.
+  function requestScrollToNote(id, { focus = false } = {}) {
+    if (id) pendingScrollId.value = { id, focus };
+  }
+
+  return { createNoteAction, pendingScrollId, requestScrollToNote };
 }

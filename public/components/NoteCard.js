@@ -5,6 +5,7 @@ import { useView } from "../composables/useView.js";
 import { useUndo } from "../composables/useUndo.js";
 import { useAutocomplete } from "../composables/useAutocomplete.js";
 import { usePreferences } from "../composables/usePreferences.js";
+import { useCreateNote } from "../composables/useCreateNote.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -30,6 +31,7 @@ export default {
     const { pushUndo } = useUndo();
     const { complete } = useAutocomplete();
     const { preferences } = usePreferences();
+    const { requestScrollToNote } = useCreateNote();
 
     // N = max items before the note collapses (user-configurable, 5-15).
     // When collapsed we show N-4 items, so the smallest "+N more" is +5.
@@ -533,6 +535,9 @@ export default {
 
     function onSetReminder(timestamp, recurrence) {
       setReminder(props.note.id, timestamp, recurrence || "none");
+      // The note reorders into the reminders region; scroll to its new
+      // position and highlight it, like a freshly created note.
+      requestScrollToNote(props.note.id);
     }
 
     function onClearReminder() {

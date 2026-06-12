@@ -206,15 +206,19 @@ export default {
       }, { once: true });
     }
 
-    // A new note (created from the sidebar's "Add note") gets scrolled into
-    // view, highlighted, and its title focused once it renders here.
-    watch(pendingScrollId, async (id) => {
-      if (!id) return;
+    // A note flagged for scrolling (newly created, or moved because a reminder
+    // was added) gets scrolled into view and highlighted once it renders here.
+    // Freshly created notes also get their title focused.
+    watch(pendingScrollId, async (req) => {
+      if (!req) return;
+      const { id, focus } = req;
       await nextTick();
       setTimeout(() => {
         scrollToAndHighlight(id);
-        const titleInput = gridRef.value?.querySelector(`[data-note-id="${id}"] .note-title-input`);
-        if (titleInput) titleInput.focus();
+        if (focus) {
+          const titleInput = gridRef.value?.querySelector(`[data-note-id="${id}"] .note-title-input`);
+          if (titleInput) titleInput.focus();
+        }
         pendingScrollId.value = null;
       }, 150);
     });
