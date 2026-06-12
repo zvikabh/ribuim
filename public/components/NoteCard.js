@@ -632,6 +632,18 @@ export default {
         Show less
       </button>
 
+      <div v-else-if="collapseControls === 'middle'" class="checklist-toggle-row">
+        <button class="checklist-toggle" @click="expandToFull">
+          <i class="bi bi-chevron-down"></i>
+          {{ checkedLinkLabel }}
+        </button>
+        <span class="checklist-toggle-sep">·</span>
+        <button class="checklist-toggle" @click="collapseFromMiddle">
+          <i class="bi bi-chevron-up"></i>
+          Show less
+        </button>
+      </div>
+
       <ul ref="uncheckedListRef" class="checklist">
         <li v-for="item in visibleUnchecked"
             :key="item.id"
