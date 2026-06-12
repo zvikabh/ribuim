@@ -240,6 +240,9 @@ body {
 @media (max-width: 767.98px) {
   .ribuim-main {
     margin-left: 0;
+    /* Room so the floating "new note" button never covers the last note when
+       scrolled to the bottom (FAB is 56px tall, 16px from the bottom edge). */
+    padding-bottom: 88px;
   }
   .ribuim-sidebar {
     transform: translateX(-100%);
@@ -248,6 +251,40 @@ body {
   }
   .ribuim-sidebar.open {
     transform: translateX(0);
+  }
+}
+
+/* ---------- Mobile floating "new note" button ---------- */
+
+/* Hidden on desktop, where "Add note" lives in the sidebar. */
+.ribuim-fab {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .ribuim-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ribuim-accent);
+    color: #000;
+    font-size: 1.6rem;
+    line-height: 1;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    /* Above the notes, but below the sidebar (80) and its backdrop (75) so it
+       doesn't float over the open menu. */
+    z-index: 70;
+  }
+  .ribuim-fab:active {
+    transform: scale(0.94);
   }
 }
 

@@ -4,6 +4,7 @@ import { useAuth } from "./composables/useAuth.js";
 import { useNotes } from "./composables/useNotes.js";
 import { useReminders } from "./composables/useReminders.js";
 import { usePreferences } from "./composables/usePreferences.js";
+import { useCreateNote } from "./composables/useCreateNote.js";
 import LoginScreen from "./components/LoginScreen.js";
 import AppHeader from "./components/AppHeader.js";
 import NoteGrid from "./components/NoteGrid.js";
@@ -22,6 +23,7 @@ const App = {
     const { accessDenied } = useNotes();
     const { requestNotificationPermission } = useReminders();
     const { preferences } = usePreferences();
+    const { createNoteAction } = useCreateNote();
 
     function onAppClick() {
       if (currentUser.value && !accessDenied.value) {
@@ -42,7 +44,7 @@ const App = {
       return "app";
     });
 
-    return { stage, currentUser, accessDenied, signOut };
+    return { stage, currentUser, accessDenied, signOut, createNoteAction };
   },
   template: `
     <div v-if="stage === 'loading'" class="empty-state">
@@ -74,6 +76,9 @@ const App = {
       <ImportDialog />
       <PreferencesDialog />
       <ShareDialog />
+      <button class="ribuim-fab" @click="createNoteAction" aria-label="New note" title="New note">
+        <i class="bi bi-plus-lg"></i>
+      </button>
     </template>
 
     <ConfirmDialog />
