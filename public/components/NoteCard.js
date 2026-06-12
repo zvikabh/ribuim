@@ -46,9 +46,13 @@ export default {
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
     const pendingFocusId = ref(null);
-    // Collapse state machine: "collapsed" (few unchecked, no checked),
-    // "middle" (all unchecked, no checked), "expanded" (everything).
-    const mode = ref("collapsed");
+    // Collapse state machine: "collapsed" (no checked items shown — and, for
+    // long notes, only the first few unchecked), "middle" (all unchecked, no
+    // checked), "expanded" (everything). Long notes start collapsed; shorter
+    // notes that are collapsible only because they have checked items start
+    // expanded (everything shown), so the user opts into hiding the checked.
+    const initialItemCount = props.note.items ? Object.keys(props.note.items).length : 0;
+    const mode = ref(initialItemCount > collapseThreshold.value ? "collapsed" : "expanded");
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -201,7 +205,11 @@ export default {
     });
 
     const totalItems = computed(() => uncheckedItems.value.length + checkedItems.value.length);
-    const shouldCollapse = computed(() => totalItems.value > collapseThreshold.value);
+    const checkedCount = computed(() => checkedItems.value.length);
+    // "Long" notes truncate their unchecked items. Any note with checked items
+    // is collapsible (its checked items can be hidden) even when not long.
+    const isLong = computed(() => totalItems.value > collapseThreshold.value);
+    const shouldCollapse = computed(() => isLong.value || checkedCount.value > 0);
 
     const hasItems = computed(() => totalItems.value > 0);
     const allChecked = computed(() =>
@@ -224,16 +232,18 @@ export default {
     const searchForcesExpand = computed(() => {
       const q = searchQuery.value?.trim().toLowerCase();
       if (!q || !shouldCollapse.value) return false;
-      for (const item of uncheckedItems.value.slice(visibleCount.value)) {
-        if ((item.label || "").toLowerCase().includes(q)) return true;
+      // Only the items actually hidden in the collapsed state can force an
+      // expansion: truncated unchecked items (long notes only) and all checked.
+      if (isLong.value) {
+        for (const item of uncheckedItems.value.slice(visibleCount.value)) {
+          if ((item.label || "").toLowerCase().includes(q)) return true;
+        }
       }
       for (const item of checkedItems.value) {
         if ((item.label || "").toLowerCase().includes(q)) return true;
       }
       return false;
     });
-
-    const checkedCount = computed(() => checkedItems.value.length);
 
     // Unchecked items hidden while in the "collapsed" mode.
     const hiddenUncheckedCollapsed = computed(() =>
@@ -246,7 +256,7 @@ export default {
     // shows every unchecked item (or there are no checked items), so we fall
     // back to just two modes.
     const hasMiddle = computed(() =>
-      shouldCollapse.value && checkedCount.value > 0 && hiddenUncheckedCollapsed.value > 0
+      isLong.value && checkedCount.value > 0 && hiddenUncheckedCollapsed.value > 0
     );
 
     // Resolve the active mode: search always forces a full expansion; a stale
@@ -259,7 +269,9 @@ export default {
     });
 
     const visibleUnchecked = computed(() => {
-      if (effectiveMode.value === "collapsed") {
+      // Only long notes truncate unchecked items; short collapsible notes show
+      // all of them in the collapsed state (they only hide the checked items).
+      if (isLong.value && effectiveMode.value === "collapsed") {
         return uncheckedItems.value.slice(0, visibleCount.value);
       }
       return uncheckedItems.value;
@@ -339,8 +351,9 @@ export default {
         }
       }
 
-      // The new item is unchecked, so make sure unchecked items are all shown.
-      if (effectiveMode.value === "collapsed") {
+      // The new item is unchecked. Only long notes truncate unchecked items,
+      // so only they need bumping out of "collapsed" to reveal it.
+      if (isLong.value && effectiveMode.value === "collapsed") {
         mode.value = hasMiddle.value ? "middle" : "expanded";
       }
 
@@ -568,7 +581,7 @@ export default {
       localTitle, titleGhost, onTitleInput, onTitleKeydown, onTitleSelect, onTitleBlur, flushTitle, isRtl,
       onTitleGhostTap,
       visibleUnchecked, visibleChecked,
-      shouldCollapse, collapseControls, hiddenTotal,
+      collapseControls, hiddenTotal,
       collapsedLinkLabel, checkedLinkLabel,
       expandFromCollapsed, expandToFull, collapseFromExpanded, collapseFromMiddle,
       setItemRef, pendingFocusId,
