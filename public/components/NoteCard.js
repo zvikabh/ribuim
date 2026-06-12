@@ -53,16 +53,21 @@ export default {
     // expanded (everything shown), so the user opts into hiding the checked.
     const initialItemCount = props.note.items ? Object.keys(props.note.items).length : 0;
     const initialCheckedCount = props.note.items ? Object.values(props.note.items).filter(i => i.checked).length : 0;
+    const initialUncheckedCount = initialItemCount - initialCheckedCount;
     const initialIsLong = initialItemCount > collapseThreshold.value;
     // Pick the mode a note opens in. With the "semi-collapsed by default"
     // preference on, a note with any checked items opens showing only its
-    // unchecked items: for long notes that's the "middle" mode (all unchecked,
-    // no checked); for short notes "collapsed" already hides just the checked
-    // items (it only truncates unchecked on long notes), and "middle" doesn't
-    // exist for them.
+    // unchecked items. "collapsed" hides the checked items and, on long notes,
+    // also truncates the unchecked ones; "middle" shows every unchecked item
+    // while still hiding checked. So we only need "middle" when collapsing would
+    // actually hide some unchecked items (a long note with more unchecked than
+    // fit) — that's also the only case where "middle" exists (hasMiddle). When a
+    // note is long purely because of its checked items, "collapsed" already
+    // shows every unchecked item, so use it.
     function defaultMode() {
       if (preferences.value.defaultSemiCollapsed && initialCheckedCount > 0) {
-        return initialIsLong ? "middle" : "collapsed";
+        const wouldTruncateUnchecked = initialIsLong && initialUncheckedCount > visibleCount.value;
+        return wouldTruncateUnchecked ? "middle" : "collapsed";
       }
       return initialIsLong ? "collapsed" : "expanded";
     }
