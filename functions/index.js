@@ -42,6 +42,15 @@ exports.sendReminderNotifications = onSchedule("every 1 minutes", async () => {
           body: note.title || "A reminder needs your attention",
         },
         webpush: {
+          // Without a high urgency header, mobile push services and OS battery
+          // management (Android Doze, iOS background throttling) batch the
+          // message and only deliver it during periodic device wake windows,
+          // causing irregular ~15-20 min delays. "high" forces prompt delivery;
+          // TTL bounds how long a stale reminder can sit queued if offline.
+          headers: {
+            Urgency: "high",
+            TTL: "600",
+          },
           fcmOptions: {
             link: `https://ribuim.web.app`,
           },
