@@ -52,7 +52,29 @@ export default {
     // notes that are collapsible only because they have checked items start
     // expanded (everything shown), so the user opts into hiding the checked.
     const initialItemCount = props.note.items ? Object.keys(props.note.items).length : 0;
-    const mode = ref(initialItemCount > collapseThreshold.value ? "collapsed" : "expanded");
+    const initialCheckedCount = props.note.items ? Object.values(props.note.items).filter(i => i.checked).length : 0;
+    const initialIsLong = initialItemCount > collapseThreshold.value;
+    // Pick the mode a note opens in. With the "semi-collapsed by default"
+    // preference on, a note with any checked items opens showing only its
+    // unchecked items: for long notes that's the "middle" mode (all unchecked,
+    // no checked); for short notes "collapsed" already hides just the checked
+    // items (it only truncates unchecked on long notes), and "middle" doesn't
+    // exist for them.
+    function defaultMode() {
+      if (preferences.value.defaultSemiCollapsed && initialCheckedCount > 0) {
+        return initialIsLong ? "middle" : "collapsed";
+      }
+      return initialIsLong ? "collapsed" : "expanded";
+    }
+    const mode = ref(defaultMode());
+    // Preferences load asynchronously, often after this card has already
+    // rendered, so the value above may have been computed before
+    // defaultSemiCollapsed arrived. Re-apply the default once it loads, unless
+    // the user has already chosen a mode themselves.
+    let modeUserSet = false;
+    watch(() => preferences.value.defaultSemiCollapsed, () => {
+      if (!modeUserSet) mode.value = defaultMode();
+    });
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -309,11 +331,12 @@ export default {
       return effectiveMode.value;
     });
 
-    // Mode transitions.
-    function expandFromCollapsed() { mode.value = hasMiddle.value ? "middle" : "expanded"; }
-    function expandToFull() { mode.value = "expanded"; }
-    function collapseFromExpanded() { mode.value = hasMiddle.value ? "middle" : "collapsed"; }
-    function collapseFromMiddle() { mode.value = "collapsed"; }
+    // Mode transitions. Each marks the mode as user-chosen so a late-arriving
+    // defaultSemiCollapsed preference no longer overrides it.
+    function expandFromCollapsed() { modeUserSet = true; mode.value = hasMiddle.value ? "middle" : "expanded"; }
+    function expandToFull() { modeUserSet = true; mode.value = "expanded"; }
+    function collapseFromExpanded() { modeUserSet = true; mode.value = hasMiddle.value ? "middle" : "collapsed"; }
+    function collapseFromMiddle() { modeUserSet = true; mode.value = "collapsed"; }
 
     // Expanding/collapsing changes this card's height but touches no note data,
     // so the grid wouldn't otherwise know to re-measure and reflow. Signal it
@@ -354,6 +377,7 @@ export default {
       // The new item is unchecked. Only long notes truncate unchecked items,
       // so only they need bumping out of "collapsed" to reveal it.
       if (isLong.value && effectiveMode.value === "collapsed") {
+        modeUserSet = true;
         mode.value = hasMiddle.value ? "middle" : "expanded";
       }
 

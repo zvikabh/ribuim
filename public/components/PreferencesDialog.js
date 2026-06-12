@@ -19,9 +19,13 @@ export default {
       updatePreference("maxVisibleItems", n);
     }
 
+    function onDefaultSemiCollapsed(e) {
+      updatePreference("defaultSemiCollapsed", e.target.checked);
+    }
+
     return {
       preferences, dialogOpen, closePreferences,
-      onReminderColors, onScreenUsage, onMaxVisibleItems
+      onReminderColors, onScreenUsage, onMaxVisibleItems, onDefaultSemiCollapsed
     };
   },
   template: `
@@ -117,6 +121,21 @@ export default {
                       <span>
                         <strong>Cluttered</strong>
                         <br><small class="text-muted">Minimal spacing — fits more notes on screen.</small>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <h6 class="mb-2">Default note mode</h6>
+                  <div class="list-group">
+                    <label class="list-group-item d-flex gap-2">
+                      <input type="checkbox" class="form-check-input flex-shrink-0"
+                             :checked="preferences.defaultSemiCollapsed"
+                             @change="onDefaultSemiCollapsed">
+                      <span>
+                        <strong>Semi-collapsed by default</strong>
+                        <br><small class="text-muted">Notes open showing only unchecked items; checked items stay hidden until expanded.</small>
                       </span>
                     </label>
                   </div>
