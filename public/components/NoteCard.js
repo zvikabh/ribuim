@@ -72,14 +72,11 @@ export default {
       return initialIsLong ? "collapsed" : "expanded";
     }
     const mode = ref(defaultMode());
-    // Preferences load asynchronously, often after this card has already
-    // rendered, so the value above may have been computed before
-    // defaultSemiCollapsed arrived. Re-apply the default once it loads, unless
-    // the user has already chosen a mode themselves.
+    // True once the user explicitly chooses a collapse state via the controls.
+    // Until then the note follows the semi-collapsed default reactively (see the
+    // semiCollapseTarget watcher below), which also covers preferences loading
+    // asynchronously after this card first rendered.
     let modeUserSet = false;
-    watch(() => preferences.value.defaultSemiCollapsed, () => {
-      if (!modeUserSet) mode.value = defaultMode();
-    });
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -285,6 +282,23 @@ export default {
     const hasMiddle = computed(() =>
       isLong.value && checkedCount.value > 0 && hiddenUncheckedCollapsed.value > 0
     );
+
+    // With "semi-collapsed by default" on, a note with checked items should open
+    // showing only its unchecked items. This is recomputed reactively (not just
+    // at setup from defaultMode) so a note that only gains checked items later —
+    // e.g. a freshly created note the user fills in and then checks an item —
+    // still drops into the semi-collapsed mode. It's null whenever no
+    // semi-collapse applies, so we never force the plain long-note unchecked
+    // truncation here while the user is editing.
+    const semiCollapseTarget = computed(() => {
+      if (!preferences.value.defaultSemiCollapsed || checkedCount.value === 0) {
+        return null;
+      }
+      return hasMiddle.value ? "middle" : "collapsed";
+    });
+    watch(semiCollapseTarget, (target) => {
+      if (target && !modeUserSet) mode.value = target;
+    });
 
     // Resolve the active mode: search always forces a full expansion; a stale
     // "middle" (note changed so it no longer exists) snaps to expanded.
