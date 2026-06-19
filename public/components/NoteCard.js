@@ -14,6 +14,31 @@ import HighlightText from "./HighlightText.js";
 import SharedWithList from "./SharedWithList.js";
 import { openShareDialog } from "./ShareDialog.js";
 
+// The collapse state lives only in memory, so a page reload (e.g. a mobile
+// browser discarding and reloading the tab when the user switches away and
+// back) would otherwise drop a note's mode and re-apply the default, collapsing
+// notes the user had expanded. Persist each note's explicit choice so it
+// survives reloads. Untouched notes have no entry and keep following the
+// default.
+const COLLAPSE_MODE_KEY = "ribuim-note-mode:";
+
+function loadSavedMode(noteId) {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_MODE_KEY + noteId);
+    return raw === "collapsed" || raw === "middle" || raw === "expanded" ? raw : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function saveMode(noteId, mode) {
+  try {
+    localStorage.setItem(COLLAPSE_MODE_KEY + noteId, mode);
+  } catch (err) {
+    /* storage unavailable or full — non-fatal, just won't persist */
+  }
+}
+
 export default {
   components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips, HighlightText, SharedWithList },
   props: {
@@ -71,12 +96,16 @@ export default {
       }
       return initialIsLong ? "collapsed" : "expanded";
     }
-    const mode = ref(defaultMode());
-    // True once the user explicitly chooses a collapse state via the controls.
-    // Until then the note follows the semi-collapsed default reactively (see the
-    // semiCollapseTarget watcher below), which also covers preferences loading
-    // asynchronously after this card first rendered.
-    let modeUserSet = false;
+    // A mode the user previously chose (persisted across reloads) wins over the
+    // default; otherwise fall back to the computed default for a first view.
+    const savedMode = loadSavedMode(props.note.id);
+    const mode = ref(savedMode || defaultMode());
+    // True once the user explicitly chooses a collapse state via the controls
+    // (or we restored such a choice above). Until then the note follows the
+    // semi-collapsed default reactively (see the semiCollapseTarget watcher
+    // below), which also covers preferences loading asynchronously after this
+    // card first rendered.
+    let modeUserSet = savedMode !== null;
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -350,12 +379,18 @@ export default {
       return effectiveMode.value;
     });
 
-    // Mode transitions. Each marks the mode as user-chosen so a late-arriving
-    // defaultSemiCollapsed preference no longer overrides it.
-    function expandFromCollapsed() { modeUserSet = true; mode.value = hasMiddle.value ? "middle" : "expanded"; }
-    function expandToFull() { modeUserSet = true; mode.value = "expanded"; }
-    function collapseFromExpanded() { modeUserSet = true; mode.value = hasMiddle.value ? "middle" : "collapsed"; }
-    function collapseFromMiddle() { modeUserSet = true; mode.value = "collapsed"; }
+    // Mode transitions. Each marks the mode as user-chosen (so a late-arriving
+    // defaultSemiCollapsed preference no longer overrides it) and persists it so
+    // it survives a page reload.
+    function setUserMode(newMode) {
+      modeUserSet = true;
+      mode.value = newMode;
+      saveMode(props.note.id, newMode);
+    }
+    function expandFromCollapsed() { setUserMode(hasMiddle.value ? "middle" : "expanded"); }
+    function expandToFull() { setUserMode("expanded"); }
+    function collapseFromExpanded() { setUserMode(hasMiddle.value ? "middle" : "collapsed"); }
+    function collapseFromMiddle() { setUserMode("collapsed"); }
 
     // Expanding/collapsing changes this card's height but touches no note data,
     // so the grid wouldn't otherwise know to re-measure and reflow. Signal it
@@ -396,8 +431,7 @@ export default {
       // The new item is unchecked. Only long notes truncate unchecked items,
       // so only they need bumping out of "collapsed" to reveal it.
       if (isLong.value && effectiveMode.value === "collapsed") {
-        modeUserSet = true;
-        mode.value = hasMiddle.value ? "middle" : "expanded";
+        setUserMode(hasMiddle.value ? "middle" : "expanded");
       }
 
       // Optimistic local mutation. We can't wait for the Firestore listener
