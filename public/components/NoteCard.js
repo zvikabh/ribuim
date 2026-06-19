@@ -71,6 +71,7 @@ export default {
     const uncheckedListRef = ref(null);
     const itemRefs = ref({});
     const pendingFocusId = ref(null);
+    let focusClearTimer = null;
     // Collapse state machine: "collapsed" (no checked items shown — and, for
     // long notes, only the first few unchecked), "middle" (all unchecked, no
     // checked), "expanded" (everything). Long notes start collapsed; shorter
@@ -215,7 +216,7 @@ export default {
         const newOrder = [...existingOrder];
         newOrder.splice(idx === -1 ? 0 : idx, 0, newId);
 
-        pendingFocusId.value = newId;
+        requestItemFocus(newId);
 
         const noteIdx = notes.value.findIndex(n => n.id === noteId);
         if (noteIdx !== -1) {
@@ -402,6 +403,22 @@ export default {
       else delete itemRefs.value[itemId];
     }
 
+    // Autofocus a freshly created item (ChecklistItem focuses itself on mount
+    // when it's the pending target). The optimistic item can briefly unmount and
+    // remount if an in-flight Firestore snapshot rebuilds the notes list before
+    // our own insert is reflected locally, so we keep the target set across that
+    // short settling window — re-focusing on the remount — rather than clearing
+    // it after a single tick, which raced the remount and intermittently dropped
+    // the focus.
+    function requestItemFocus(itemId) {
+      pendingFocusId.value = itemId;
+      if (focusClearTimer) clearTimeout(focusClearTimer);
+      focusClearTimer = setTimeout(() => {
+        focusClearTimer = null;
+        if (pendingFocusId.value === itemId) pendingFocusId.value = null;
+      }, 500);
+    }
+
     async function addNewItem(afterItemId = null) {
       const noteId = props.note.id;
       const items = props.note.items || {};
@@ -450,8 +467,10 @@ export default {
         };
       }
 
-      // Trigger autofocus on the new ChecklistItem when it mounts.
-      pendingFocusId.value = newId;
+      // Autofocus the new ChecklistItem once it mounts (see requestItemFocus:
+      // the target is kept set briefly so a remount during snapshot settling
+      // still lands the focus).
+      requestItemFocus(newId);
 
       insertItem(noteId, "", newOrder, newId).catch((err) => {
         if (err && err.code !== "not-found") {
@@ -459,12 +478,6 @@ export default {
         }
       });
       pushUndo("Add item", () => deleteItem(noteId, newId));
-
-      // After the new component has mounted (and onMounted has fired,
-      // focusing the input), clear pendingFocusId so re-renders don't keep
-      // marking it as the autofocus target.
-      await nextTick();
-      pendingFocusId.value = null;
     }
 
     function onItemToggle(itemId, newChecked) {
@@ -586,6 +599,7 @@ export default {
       if (sortable) { sortable.destroy(); sortable = null; }
       if (titleResizeObserver) { titleResizeObserver.disconnect(); titleResizeObserver = null; }
       if (titleTimer) clearTimeout(titleTimer);
+      if (focusClearTimer) clearTimeout(focusClearTimer);
       if (titleDirty.value) flushTitle();
     });
 
