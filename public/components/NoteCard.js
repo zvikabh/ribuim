@@ -445,10 +445,17 @@ export default {
         }
       }
 
-      // The new item is unchecked. Only long notes truncate unchecked items,
-      // so only they need bumping out of "collapsed" to reveal it.
-      if (isLong.value && effectiveMode.value === "collapsed") {
-        setUserMode(hasMiddle.value ? "middle" : "expanded");
+      // The new item is unchecked. In a collapsed long note we only need to act
+      // when collapsing would truncate it — i.e. there are already at least
+      // visibleCount unchecked items, so adding one more pushes past the limit.
+      // Reveal it via "middle", which shows every unchecked item while keeping
+      // the checked items hidden, so a semi-collapsed note stays semi-collapsed.
+      // When nothing is truncated the new item is already visible, so leave the
+      // mode alone rather than expanding (which used to expose the checked
+      // items).
+      if (isLong.value && effectiveMode.value === "collapsed" &&
+          uncheckedItems.value.length >= visibleCount.value) {
+        setUserMode("middle");
       }
 
       // Optimistic local mutation. We can't wait for the Firestore listener
