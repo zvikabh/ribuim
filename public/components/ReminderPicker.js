@@ -186,7 +186,6 @@ export default {
               @click="start"
               :title="hasReminder ? 'Edit reminder' : 'Set reminder'">
         <i class="bi" :class="isRecurring ? 'bi-arrow-repeat' : 'bi-bell'"></i>
-        <span class="d-none d-sm-inline">{{ hasReminder ? 'Edit reminder' : 'Reminder' }}</span>
       </button>
       <span v-else class="reminder-picker">
         <input type="datetime-local" v-model="inputValue" class="reminder-picker-input">

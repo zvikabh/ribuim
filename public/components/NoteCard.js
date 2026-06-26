@@ -819,14 +819,12 @@ export default {
                 @click="onRestore"
                 title="Restore note">
           <i class="bi bi-arrow-counterclockwise"></i>
-          <span>Restore</span>
         </button>
         <span class="ms-auto"></span>
         <button class="note-action-btn danger"
                 @click="onDeletePermanently"
                 title="Delete permanently">
           <i class="bi bi-x-circle"></i>
-          <span>Delete forever</span>
         </button>
       </div>
       <div v-else class="note-actions" dir="ltr">
@@ -835,14 +833,12 @@ export default {
                 @click="onMarkReminderDone"
                 title="Mark reminder done">
           <i class="bi bi-check2"></i>
-          <span>Done</span>
         </button>
         <button v-if="hasItems"
                 class="note-action-btn"
                 @click="onCheckAll"
                 :title="allChecked ? 'Uncheck all items' : 'Check all items'">
           <i class="bi" :class="allChecked ? 'bi-square' : 'bi-check2-all'"></i>
-          <span class="d-none d-sm-inline">{{ allChecked ? 'Uncheck all' : 'Check all' }}</span>
         </button>
         <ReminderPicker v-if="isOwner"
                         :reminder-at="note.reminderAt"
@@ -855,14 +851,12 @@ export default {
                 @click="onShare"
                 title="Share note">
           <i class="bi bi-people"></i>
-          <span class="d-none d-sm-inline">Share</span>
         </button>
         <button v-if="isOwner"
                 class="note-action-btn"
                 @click="onDuplicate"
                 title="Duplicate note">
           <i class="bi bi-copy"></i>
-          <span class="d-none d-sm-inline">Duplicate</span>
         </button>
         <span class="ms-auto"></span>
         <button v-if="isOwner"

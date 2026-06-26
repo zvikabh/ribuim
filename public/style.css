@@ -719,7 +719,10 @@ body {
   color: #d33;
 }
 
-.note-action-btn .bi {
+/* Icon-to-text spacing only when the button actually has a text label; the
+   note-footer action buttons are icon-only (label shown via the title tooltip),
+   so a lone icon stays centered. */
+.note-action-btn .bi:not(:only-child) {
   margin-right: 4px;
 }
 
