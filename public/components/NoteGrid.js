@@ -3,6 +3,7 @@ import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
 import { usePreferences } from "../composables/usePreferences.js";
 import { useCreateNote } from "../composables/useCreateNote.js";
+import { isRtlText } from "../textDirection.js";
 import NoteCard from "./NoteCard.js";
 
 const MIN_COL_WIDTH = 280;
@@ -62,10 +63,7 @@ export default {
     });
 
     function isNoteRtl(note) {
-      const t = note.title || "";
-      const rtl = (t.match(/[֐-׿؀-ۿ܀-ݏ]/g) || []).length;
-      const ltr = (t.match(/[A-Za-z]/g) || []).length;
-      return rtl > ltr;
+      return isRtlText(note.title);
     }
 
     const gridRtl = computed(() => {

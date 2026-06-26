@@ -13,6 +13,7 @@ import LabelChips from "./LabelChips.js";
 import HighlightText from "./HighlightText.js";
 import SharedWithList from "./SharedWithList.js";
 import { openShareDialog } from "./ShareDialog.js";
+import { isRtlText } from "../textDirection.js";
 
 // The collapse state lives only in memory, so a page reload (e.g. a mobile
 // browser discarding and reloading the tab when the user switches away and
@@ -56,7 +57,7 @@ export default {
     const { pushUndo } = useUndo();
     const { complete } = useAutocomplete();
     const { preferences } = usePreferences();
-    const { requestScrollToNote } = useCreateNote();
+    const { requestScrollToNote, duplicateNoteAction } = useCreateNote();
 
     // N = max items before the note collapses (user-configurable, 5-15).
     // When collapsed we show N-4 items, so the smallest "+N more" is +5.
@@ -618,6 +619,10 @@ export default {
       openShareDialog(props.note);
     }
 
+    function onDuplicate() {
+      duplicateNoteAction(props.note.id);
+    }
+
     const isPinned = computed(() => isPinnedForMe(props.note));
 
     function onTogglePin() {
@@ -667,12 +672,7 @@ export default {
       props.note.reminderAt && !props.note.reminderDone
     );
 
-    const isRtl = computed(() => {
-      const t = props.note.title || "";
-      const rtlChars = t.match(/[֐-׿؀-ۿ܀-ݏ]/g);
-      const latinChars = t.match(/[A-Za-z]/g);
-      return (rtlChars?.length || 0) > (latinChars?.length || 0);
-    });
+    const isRtl = computed(() => isRtlText(props.note.title));
 
     return {
       titleInputRef, uncheckedListRef,
@@ -689,7 +689,7 @@ export default {
       hasItems, allChecked, onCheckAll,
       isTrashed, isOwner, onTrash, onRestore, onDeletePermanently, onTogglePin, isPinned,
       onSetReminder, onClearReminder, onMarkReminderDone,
-      hasActiveReminder, searchQuery, onShare
+      hasActiveReminder, searchQuery, onShare, onDuplicate
     };
   },
   template: `
@@ -856,6 +856,13 @@ export default {
                 title="Share note">
           <i class="bi bi-people"></i>
           <span class="d-none d-sm-inline">Share</span>
+        </button>
+        <button v-if="isOwner"
+                class="note-action-btn"
+                @click="onDuplicate"
+                title="Duplicate note">
+          <i class="bi bi-copy"></i>
+          <span class="d-none d-sm-inline">Duplicate</span>
         </button>
         <span class="ms-auto"></span>
         <button v-if="isOwner"

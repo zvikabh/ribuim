@@ -9,7 +9,7 @@ import { useUndo } from "./useUndo.js";
 const pendingScrollId = ref(null);
 
 export function useCreateNote() {
-  const { createNote, addLabel, trashNote } = useNotes();
+  const { createNote, duplicateNote, addLabel, trashNote } = useNotes();
   const { currentView, setView } = useView();
   const { pushUndo } = useUndo();
 
@@ -27,6 +27,18 @@ export function useCreateNote() {
     return id;
   }
 
+  async function duplicateNoteAction(noteId) {
+    const id = await duplicateNote(noteId);
+    if (!id) return null;
+    // The copy has no labels/reminder and isn't shared, so it won't appear in a
+    // filtered view; switch to All so it's visible to scroll to. Don't steal
+    // focus into the title — this isn't a blank note awaiting input.
+    if (currentView.value.type !== "all") setView({ type: "all" });
+    pushUndo("Duplicate note", () => trashNote(id));
+    pendingScrollId.value = { id, focus: false };
+    return id;
+  }
+
   // Ask the grid to scroll to and highlight an existing note after it moves
   // (e.g. when a reminder is added and it jumps to the reminders region).
   // Defaults to not stealing focus into the title.
@@ -34,5 +46,5 @@ export function useCreateNote() {
     if (id) pendingScrollId.value = { id, focus };
   }
 
-  return { createNoteAction, pendingScrollId, requestScrollToNote };
+  return { createNoteAction, duplicateNoteAction, pendingScrollId, requestScrollToNote };
 }

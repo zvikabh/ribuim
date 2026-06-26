@@ -17,6 +17,7 @@ import {
 import { db } from "../firebase-init.js";
 import { useAuth } from "./useAuth.js";
 import { useConnectivity } from "./useConnectivity.js";
+import { isRtlText } from "../textDirection.js";
 
 const { currentUser } = useAuth();
 const { markSynced } = useConnectivity();
@@ -209,6 +210,49 @@ async function createNote() {
     notificationSent: false,
     items: {},
     itemOrder: [],
+    labels: [],
+    sharedWith: [],
+    pinnedBy: []
+  });
+  return docRef.id;
+}
+
+// Create a fresh note that copies an existing note's items (all reset to
+// unchecked) and a localized "Copy of" title. The copy is deliberately a plain
+// personal note: no labels, no reminder, and not shared with anyone.
+async function duplicateNote(noteId) {
+  const email = currentUser.value?.email;
+  if (!email) return null;
+  const source = notes.value.find(n => n.id === noteId);
+  if (!source) return null;
+
+  const order = Array.isArray(source.itemOrder) ? source.itemOrder : [];
+  const items = source.items || {};
+  const newItems = {};
+  const newOrder = [];
+  for (const itemId of order) {
+    const item = items[itemId];
+    if (!item) continue;
+    const newId = newItemId();
+    newItems[newId] = { label: item.label || "", checked: false };
+    newOrder.push(newId);
+  }
+
+  const srcTitle = source.title || "";
+  const prefix = isRtlText(srcTitle) ? "עותק של " : "Copy of ";
+  const title = srcTitle ? prefix + srcTitle : prefix.trim();
+
+  const docRef = await addDoc(collection(db, "notes"), {
+    ownerEmail: email,
+    title,
+    createdAt: serverTimestamp(),
+    reminderAt: null,
+    reminderRecurrence: "none",
+    reminderDone: false,
+    reminderDismissed: false,
+    notificationSent: false,
+    items: newItems,
+    itemOrder: newOrder,
     labels: [],
     sharedWith: [],
     pinnedBy: []
@@ -568,6 +612,7 @@ export function useNotes() {
     loading,
     accessDenied,
     createNote,
+    duplicateNote,
     trashNote,
     restoreNote,
     deleteNotePermanently,
