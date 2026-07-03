@@ -6,6 +6,7 @@ import { useUndo } from "../composables/useUndo.js";
 import { useAutocomplete } from "../composables/useAutocomplete.js";
 import { usePreferences } from "../composables/usePreferences.js";
 import { useCreateNote } from "../composables/useCreateNote.js";
+import { useItemSelection } from "../composables/useItemSelection.js";
 import ChecklistItem from "./ChecklistItem.js";
 import ReminderBadge from "./ReminderBadge.js";
 import ReminderPicker from "./ReminderPicker.js";
@@ -58,6 +59,7 @@ export default {
     const { complete } = useAutocomplete();
     const { preferences } = usePreferences();
     const { requestScrollToNote, duplicateNoteAction } = useCreateNote();
+    const { isSelected, clearSelection } = useItemSelection();
 
     // N = max items before the note collapses (user-configurable, 5-15).
     // When collapsed we show N-4 items, so the smallest "+N more" is +5.
@@ -552,6 +554,7 @@ export default {
     }
 
     function onDragEnd() {
+      clearSelection();
       if (!uncheckedListRef.value) return;
       const prevOrder = [...(props.note.itemOrder || [])];
       const els = uncheckedListRef.value.querySelectorAll("[data-item-id]");
@@ -689,7 +692,8 @@ export default {
       hasItems, allChecked, onCheckAll,
       isTrashed, isOwner, onTrash, onRestore, onDeletePermanently, onTogglePin, isPinned,
       onSetReminder, onClearReminder, onMarkReminderDone,
-      hasActiveReminder, searchQuery, onShare, onDuplicate
+      hasActiveReminder, searchQuery, onShare, onDuplicate,
+      isSelected
     };
   },
   template: `
@@ -746,7 +750,8 @@ export default {
         <li v-for="item in visibleUnchecked"
             :key="item.id"
             :data-item-id="item.id"
-            class="checklist-item">
+            class="checklist-item"
+            :class="{ 'is-selected': isSelected(note.id, item.id) }">
           <ChecklistItem
             :ref="(el) => setItemRef(item.id, el)"
             :label="item.label"
@@ -790,7 +795,8 @@ export default {
         <li v-for="item in visibleChecked"
             :key="item.id"
             :data-item-id="item.id"
-            class="checklist-item is-checked">
+            class="checklist-item is-checked"
+            :class="{ 'is-selected': isSelected(note.id, item.id) }">
           <ChecklistItem
             :ref="(el) => setItemRef(item.id, el)"
             :label="item.label"

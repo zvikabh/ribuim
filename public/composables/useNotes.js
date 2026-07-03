@@ -604,6 +604,59 @@ async function setItemOrder(noteId, itemOrder) {
   await updateDoc(doc(db, "notes", noteId), { itemOrder });
 }
 
+// ---- Batch item operations (used by multi-item cut/copy/paste) ----
+
+// Insert several new items in one write. `items` is [{ id, label, checked }];
+// `newOrder` is the full itemOrder with each new id already placed.
+async function insertItems(noteId, items, newOrder) {
+  if (!items || !items.length) return;
+  const update = { itemOrder: newOrder };
+  const now = Date.now();
+  for (const it of items) {
+    update[`items.${it.id}`] = it.checked
+      ? { label: it.label, checked: true, checkedAt: now }
+      : { label: it.label, checked: false };
+  }
+  try {
+    await updateDoc(doc(db, "notes", noteId), update);
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
+}
+
+// Delete several items (and drop them from itemOrder) in one write.
+async function deleteItems(noteId, ids) {
+  if (!ids || !ids.length) return;
+  const idSet = new Set(ids);
+  const note = notes.value.find(n => n.id === noteId);
+  const order = note?.itemOrder ? note.itemOrder.filter(id => !idSet.has(id)) : [];
+  const update = { itemOrder: order };
+  for (const id of ids) update[`items.${id}`] = deleteField();
+  try {
+    await updateDoc(doc(db, "notes", noteId), update);
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
+}
+
+// Undo of a cut: re-add the saved items and restore the exact prior order.
+// `savedItems` is [{ id, label, checked, checkedAt? }]; `prevOrder` is the
+// itemOrder as it was before the cut.
+async function restoreItems(noteId, savedItems, prevOrder) {
+  if (!savedItems || !savedItems.length) return;
+  const update = { itemOrder: prevOrder };
+  for (const it of savedItems) {
+    update[`items.${it.id}`] = it.checked
+      ? { label: it.label, checked: true, checkedAt: it.checkedAt || Date.now() }
+      : { label: it.label, checked: false };
+  }
+  try {
+    await updateDoc(doc(db, "notes", noteId), update);
+  } catch (err) {
+    if (err.code !== "not-found") throw err;
+  }
+}
+
 export function useNotes() {
   return {
     notes,
@@ -630,6 +683,9 @@ export function useNotes() {
     setItemsChecked,
     setItemLabel,
     setItemOrder,
+    insertItems,
+    deleteItems,
+    restoreItems,
     addLabel,
     removeLabel,
     shareNote,
