@@ -82,12 +82,16 @@ const currentViewLabel = computed(() => {
 });
 
 function setView(v) {
+  const changed = JSON.stringify(v) !== JSON.stringify(currentView.value);
   currentView.value = v;
   sidebarOpen.value = false;
   const newHash = hashFromView(v);
   if (location.hash !== newHash) {
     history.replaceState(null, "", newHash);
   }
+  // Switching views replaces the whole list, so a leftover scroll position from
+  // the previous view is disorienting — jump back to the top.
+  if (changed) window.scrollTo(0, 0);
 }
 
 function toggleSidebar() {
