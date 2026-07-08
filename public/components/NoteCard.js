@@ -283,7 +283,8 @@ export default {
       const noteId = props.note.id;
       setItemsChecked(noteId, changed, target);
       pushUndo(target ? "Check all items" : "Uncheck all items",
-        () => setItemsChecked(noteId, changed, !target));
+        () => setItemsChecked(noteId, changed, !target),
+        () => setItemsChecked(noteId, changed, target));
     }
 
     const searchForcesExpand = computed(() => {
@@ -487,13 +488,16 @@ export default {
           console.error("insertItem failed:", err);
         }
       });
-      pushUndo("Add item", () => deleteItem(noteId, newId));
+      pushUndo("Add item",
+        () => deleteItem(noteId, newId),
+        () => insertItem(noteId, "", newOrder, newId));
     }
 
     function onItemToggle(itemId, newChecked) {
       setItemChecked(props.note.id, itemId, newChecked);
       pushUndo(newChecked ? "Check item" : "Uncheck item",
-        () => setItemChecked(props.note.id, itemId, !newChecked));
+        () => setItemChecked(props.note.id, itemId, !newChecked),
+        () => setItemChecked(props.note.id, itemId, newChecked));
     }
 
     function onItemLabelChange(itemId, newLabel) {
@@ -509,7 +513,9 @@ export default {
         const label = item.label || "";
         const checked = !!item.checked;
         const pos = orderIdx >= 0 ? orderIdx : 0;
-        pushUndo("Delete item", () => restoreItem(noteId, itemId, label, checked, pos));
+        pushUndo("Delete item",
+          () => restoreItem(noteId, itemId, label, checked, pos),
+          () => deleteItem(noteId, itemId));
       }
     }
 
@@ -567,7 +573,9 @@ export default {
       const fullOrder = [...visibleIds, ...hiddenIds, ...checkedIds];
       const noteId = props.note.id;
       setItemOrder(noteId, fullOrder);
-      pushUndo("Reorder items", () => setItemOrder(noteId, prevOrder));
+      pushUndo("Reorder items",
+        () => setItemOrder(noteId, prevOrder),
+        () => setItemOrder(noteId, fullOrder));
     }
 
     onMounted(() => {
@@ -633,19 +641,24 @@ export default {
       const target = !isPinned.value;
       setPinned(noteId, target);
       pushUndo(target ? "Pin note" : "Unpin note",
-        () => setPinned(noteId, !target));
+        () => setPinned(noteId, !target),
+        () => setPinned(noteId, target));
     }
 
     function onTrash() {
       const noteId = props.note.id;
       trashNote(noteId);
-      pushUndo("Move to trash", () => restoreNote(noteId));
+      pushUndo("Move to trash",
+        () => restoreNote(noteId),
+        () => trashNote(noteId));
     }
 
     function onRestore() {
       const noteId = props.note.id;
       restoreNote(noteId);
-      pushUndo("Restore note", () => trashNote(noteId));
+      pushUndo("Restore note",
+        () => trashNote(noteId),
+        () => restoreNote(noteId));
     }
 
     function onDeletePermanently() {
@@ -667,7 +680,9 @@ export default {
       const noteId = props.note.id;
       const restore = markReminderDone(noteId);
       if (restore) {
-        pushUndo("Mark reminder done", () => restoreReminder(noteId, restore));
+        pushUndo("Mark reminder done",
+          () => restoreReminder(noteId, restore),
+          () => markReminderDone(noteId));
       }
     }
 

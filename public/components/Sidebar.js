@@ -10,7 +10,7 @@ export default {
     const { currentView, sidebarOpen, allLabels, trashCount, searchQuery, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
-    const { canUndo, lastAction, undo } = useUndo();
+    const { canUndo, canRedo, lastAction, nextRedoAction, undo, redo } = useUndo();
     const { createNoteAction } = useCreateNote();
 
     function addNote() {
@@ -38,7 +38,7 @@ export default {
     return {
       currentView, sidebarOpen, allLabels, trashCount, searchQuery,
       setView, closeSidebar, isActive, openImport, openPreferences,
-      canUndo, lastAction, undo, addNote
+      canUndo, canRedo, lastAction, nextRedoAction, undo, redo, addNote
     };
   },
   template: `
@@ -109,6 +109,14 @@ export default {
           <i class="bi bi-arrow-counterclockwise"></i>
           <span>Undo</span>
           <span v-if="canUndo" class="sidebar-undo-hint">{{ lastAction }}</span>
+        </button>
+        <button class="ribuim-sidebar-item"
+                :disabled="!canRedo"
+                :title="canRedo ? 'Redo: ' + nextRedoAction : 'Nothing to redo'"
+                @click="redo">
+          <i class="bi bi-arrow-clockwise"></i>
+          <span>Redo</span>
+          <span v-if="canRedo" class="sidebar-undo-hint">{{ nextRedoAction }}</span>
         </button>
         <button class="ribuim-sidebar-item" @click="openImport">
           <i class="bi bi-box-arrow-in-down"></i>

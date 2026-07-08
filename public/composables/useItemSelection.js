@@ -139,7 +139,9 @@ function doCut() {
   if (!saved.length) return;
   const ids = saved.map(s => s.id);
   deleteItems(noteId, ids).catch(err => console.error("cut failed:", err));
-  pushUndo("Cut items", () => restoreItems(noteId, saved, prevOrder));
+  pushUndo("Cut items",
+    () => restoreItems(noteId, saved, prevOrder),
+    () => deleteItems(noteId, ids));
   clearSelection();
 }
 
@@ -167,7 +169,9 @@ function pasteInto(noteId, text, insertAt) {
   }
 
   insertItems(noteId, newItems, order).catch(err => console.error("paste failed:", err));
-  pushUndo("Paste items", () => deleteItems(noteId, newIds));
+  pushUndo("Paste items",
+    () => deleteItems(noteId, newIds),
+    () => insertItems(noteId, newItems, order));
 
   // Show what was pasted, and keep the proxy focused so it can be re-copied/cut.
   setSelection(noteId, newIds);
