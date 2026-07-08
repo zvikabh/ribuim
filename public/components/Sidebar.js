@@ -10,7 +10,7 @@ export default {
     const { currentView, sidebarOpen, allLabels, trashCount, searchQuery, setView, closeSidebar } = useView();
     const { showDialog: showImportDialog } = useImport();
     const { showPreferences: showPrefs } = usePreferences();
-    const { canUndo, canRedo, lastAction, nextRedoAction, undo, redo } = useUndo();
+    const { canUndo, canRedo, lastAction, nextRedoAction, undo, redo, openHistory } = useUndo();
     const { createNoteAction } = useCreateNote();
 
     function addNote() {
@@ -35,10 +35,16 @@ export default {
       closeSidebar();
     }
 
+    function openHistoryDialog() {
+      openHistory();
+      closeSidebar();
+    }
+
     return {
       currentView, sidebarOpen, allLabels, trashCount, searchQuery,
       setView, closeSidebar, isActive, openImport, openPreferences,
-      canUndo, canRedo, lastAction, nextRedoAction, undo, redo, addNote
+      canUndo, canRedo, lastAction, nextRedoAction, undo, redo, addNote,
+      openHistoryDialog
     };
   },
   template: `
@@ -117,6 +123,10 @@ export default {
           <i class="bi bi-arrow-clockwise"></i>
           <span>Redo</span>
           <span v-if="canRedo" class="sidebar-undo-hint">{{ nextRedoAction }}</span>
+        </button>
+        <button class="ribuim-sidebar-item" @click="openHistoryDialog">
+          <i class="bi bi-clock-history"></i>
+          <span>History</span>
         </button>
         <button class="ribuim-sidebar-item" @click="openImport">
           <i class="bi bi-box-arrow-in-down"></i>

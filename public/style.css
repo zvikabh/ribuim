@@ -1194,6 +1194,70 @@ body {
   margin-left: 0;
 }
 
+/* ---------- History dialog ---------- */
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #202124;
+}
+
+.history-row.redo {
+  color: #777; /* future (undone) actions read as muted until redone */
+}
+
+.history-row.highlight {
+  background: #d2e3fc;
+  color: #202124;
+}
+
+.history-row-icon {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.history-row-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1a73e8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.history-current-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1a73e8;
+  flex-shrink: 0;
+}
+
+.history-hint {
+  font-size: 0.9rem;
+}
+
 /* ---------- Share dialog ---------- */
 
 .share-input-wrap {

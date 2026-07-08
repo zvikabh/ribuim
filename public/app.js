@@ -14,10 +14,11 @@ import Sidebar from "./components/Sidebar.js";
 import ImportDialog from "./components/ImportDialog.js";
 import PreferencesDialog from "./components/PreferencesDialog.js";
 import ShareDialog from "./components/ShareDialog.js";
+import HistoryDialog from "./components/HistoryDialog.js";
 import OfflineBanner from "./components/OfflineBanner.js";
 
 const App = {
-  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog, ShareDialog, OfflineBanner },
+  components: { LoginScreen, AppHeader, NoteGrid, ReminderBanner, ConfirmDialog, Sidebar, ImportDialog, PreferencesDialog, ShareDialog, HistoryDialog, OfflineBanner },
   setup() {
     const { currentUser, authReady, signOut } = useAuth();
     const { accessDenied } = useNotes();
@@ -76,6 +77,7 @@ const App = {
       <ImportDialog />
       <PreferencesDialog />
       <ShareDialog />
+      <HistoryDialog />
       <button class="ribuim-fab" @click="createNoteAction" aria-label="New note" title="New note">
         <i class="bi bi-plus-lg"></i>
       </button>

@@ -9,7 +9,7 @@ import { useUndo } from "./useUndo.js";
 const pendingScrollId = ref(null);
 
 export function useCreateNote() {
-  const { createNote, duplicateNote, addLabel, trashNote, restoreNote } = useNotes();
+  const { notes, createNote, duplicateNote, addLabel, trashNote, restoreNote } = useNotes();
   const { currentView, setView } = useView();
   const { pushUndo } = useUndo();
 
@@ -22,7 +22,7 @@ export function useCreateNote() {
     } else if (view.type !== "all") {
       setView({ type: "all" });
     }
-    pushUndo("Create note", () => trashNote(id), () => restoreNote(id));
+    pushUndo("Created a new note", () => trashNote(id), () => restoreNote(id));
     pendingScrollId.value = { id, focus: true };
     return id;
   }
@@ -34,7 +34,9 @@ export function useCreateNote() {
     // filtered view; switch to All so it's visible to scroll to. Don't steal
     // focus into the title — this isn't a blank note awaiting input.
     if (currentView.value.type !== "all") setView({ type: "all" });
-    pushUndo("Duplicate note", () => trashNote(id), () => restoreNote(id));
+    const srcTitle = notes.value.find(n => n.id === noteId)?.title;
+    const srcName = srcTitle ? `"${srcTitle}"` : "an untitled note";
+    pushUndo(`Duplicated ${srcName}`, () => trashNote(id), () => restoreNote(id));
     pendingScrollId.value = { id, focus: false };
     return id;
   }

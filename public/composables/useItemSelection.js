@@ -17,6 +17,13 @@ const { pushUndo } = useUndo();
 // At most one note holds a selection at a time.
 const selection = ref({ noteId: null, ids: [] });
 
+function noteName(title) {
+  return title ? `"${title}"` : "an untitled note";
+}
+function itemCount(n) {
+  return `${n} item${n === 1 ? "" : "s"}`;
+}
+
 function isSelected(noteId, itemId) {
   return selection.value.noteId === noteId && selection.value.ids.includes(itemId);
 }
@@ -139,7 +146,8 @@ function doCut() {
   if (!saved.length) return;
   const ids = saved.map(s => s.id);
   deleteItems(noteId, ids).catch(err => console.error("cut failed:", err));
-  pushUndo("Cut items",
+  pushUndo(
+    `Cut ${itemCount(saved.length)} from ${noteName(note.title)}`,
     () => restoreItems(noteId, saved, prevOrder),
     () => deleteItems(noteId, ids));
   clearSelection();
@@ -169,7 +177,8 @@ function pasteInto(noteId, text, insertAt) {
   }
 
   insertItems(noteId, newItems, order).catch(err => console.error("paste failed:", err));
-  pushUndo("Paste items",
+  pushUndo(
+    `Pasted ${itemCount(newItems.length)} into ${noteName(note?.title)}`,
     () => deleteItems(noteId, newIds),
     () => insertItems(noteId, newItems, order));
 

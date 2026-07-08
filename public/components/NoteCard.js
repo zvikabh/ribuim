@@ -41,6 +41,14 @@ function saveMode(noteId, mode) {
   }
 }
 
+// A note's title / item's label for human-readable undo/history descriptions.
+function noteName(title) {
+  return title ? `"${title}"` : "an untitled note";
+}
+function itemName(label) {
+  return label ? `"${label}"` : "an item";
+}
+
 export default {
   components: { ChecklistItem, ReminderBadge, ReminderPicker, LabelChips, HighlightText, SharedWithList },
   props: {
@@ -55,7 +63,7 @@ export default {
       insertItem, deleteItem, restoreItem, setItemChecked, setItemsChecked, setItemLabel, setItemOrder,
       newItemId, setPinned, isPinnedForMe
     } = useNotes();
-    const { pushUndo } = useUndo();
+    const { pushUndo, recordLabelEdit } = useUndo();
     const { complete } = useAutocomplete();
     const { preferences } = usePreferences();
     const { requestScrollToNote, duplicateNoteAction } = useCreateNote();
@@ -282,7 +290,8 @@ export default {
       if (!changed.length) return;
       const noteId = props.note.id;
       setItemsChecked(noteId, changed, target);
-      pushUndo(target ? "Check all items" : "Uncheck all items",
+      pushUndo(
+        `${target ? "Checked" : "Unchecked"} all items in ${noteName(props.note.title)}`,
         () => setItemsChecked(noteId, changed, !target),
         () => setItemsChecked(noteId, changed, target));
     }
@@ -488,20 +497,35 @@ export default {
           console.error("insertItem failed:", err);
         }
       });
-      pushUndo("Add item",
+      pushUndo(
+        `Added an item to ${noteName(props.note.title)}`,
         () => deleteItem(noteId, newId),
         () => insertItem(noteId, "", newOrder, newId));
     }
 
     function onItemToggle(itemId, newChecked) {
       setItemChecked(props.note.id, itemId, newChecked);
-      pushUndo(newChecked ? "Check item" : "Uncheck item",
+      const label = props.note.items?.[itemId]?.label;
+      pushUndo(
+        `${newChecked ? "Checked" : "Unchecked"} ${itemName(label)} in ${noteName(props.note.title)}`,
         () => setItemChecked(props.note.id, itemId, !newChecked),
         () => setItemChecked(props.note.id, itemId, newChecked));
     }
 
     function onItemLabelChange(itemId, newLabel) {
-      setItemLabel(props.note.id, itemId, newLabel);
+      const noteId = props.note.id;
+      // Captured before the write below lands, so it's the value at the start of
+      // this editing session (an existing item's prior text, or "" for a new one).
+      const oldLabel = props.note.items?.[itemId]?.label ?? "";
+      setItemLabel(noteId, itemId, newLabel);
+      recordLabelEdit(
+        noteId + ":" + itemId,
+        oldLabel,
+        newLabel,
+        () => setItemLabel(noteId, itemId, oldLabel),
+        () => setItemLabel(noteId, itemId, newLabel),
+        newLabel ? `Changed item text to ${itemName(newLabel)}` : "Cleared an item's text"
+      );
     }
 
     function deleteItemWithUndo(itemId) {
@@ -513,7 +537,8 @@ export default {
         const label = item.label || "";
         const checked = !!item.checked;
         const pos = orderIdx >= 0 ? orderIdx : 0;
-        pushUndo("Delete item",
+        pushUndo(
+          `Deleted ${itemName(label)} from ${noteName(props.note.title)}`,
           () => restoreItem(noteId, itemId, label, checked, pos),
           () => deleteItem(noteId, itemId));
       }
@@ -573,7 +598,8 @@ export default {
       const fullOrder = [...visibleIds, ...hiddenIds, ...checkedIds];
       const noteId = props.note.id;
       setItemOrder(noteId, fullOrder);
-      pushUndo("Reorder items",
+      pushUndo(
+        `Reordered items in ${noteName(props.note.title)}`,
         () => setItemOrder(noteId, prevOrder),
         () => setItemOrder(noteId, fullOrder));
     }
@@ -640,7 +666,8 @@ export default {
       const noteId = props.note.id;
       const target = !isPinned.value;
       setPinned(noteId, target);
-      pushUndo(target ? "Pin note" : "Unpin note",
+      pushUndo(
+        `${target ? "Pinned" : "Unpinned"} ${noteName(props.note.title)}`,
         () => setPinned(noteId, !target),
         () => setPinned(noteId, target));
     }
@@ -648,7 +675,8 @@ export default {
     function onTrash() {
       const noteId = props.note.id;
       trashNote(noteId);
-      pushUndo("Move to trash",
+      pushUndo(
+        `Moved ${noteName(props.note.title)} to trash`,
         () => restoreNote(noteId),
         () => trashNote(noteId));
     }
@@ -656,7 +684,8 @@ export default {
     function onRestore() {
       const noteId = props.note.id;
       restoreNote(noteId);
-      pushUndo("Restore note",
+      pushUndo(
+        `Restored ${noteName(props.note.title)} from trash`,
         () => trashNote(noteId),
         () => restoreNote(noteId));
     }
@@ -680,7 +709,8 @@ export default {
       const noteId = props.note.id;
       const restore = markReminderDone(noteId);
       if (restore) {
-        pushUndo("Mark reminder done",
+        pushUndo(
+          `Marked reminder on ${noteName(props.note.title)} as done`,
           () => restoreReminder(noteId, restore),
           () => markReminderDone(noteId));
       }
