@@ -184,6 +184,12 @@ async function dismissBanner(noteId) {
   await dismissReminder(noteId);
 }
 
+async function dismissAllBanners() {
+  const ids = activeBanners.value.map(b => b.id);
+  activeBanners.value = [];
+  await Promise.all(ids.map(id => dismissReminder(id)));
+}
+
 async function bannerMarkDone(noteId) {
   dismissBanner(noteId);
   await markReminderDone(noteId);
@@ -204,6 +210,7 @@ export function useReminders() {
   return {
     activeBanners,
     dismissBanner,
+    dismissAllBanners,
     bannerMarkDone,
     notificationPermission,
     requestNotificationPermission
