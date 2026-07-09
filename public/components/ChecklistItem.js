@@ -252,8 +252,16 @@ export default {
     onMounted(() => {
       autoResize();
       setupResizeObserver();
-      if (props.autofocus && inputRef.value) {
-        inputRef.value.focus();
+      if (props.autofocus) {
+        if (inputRef.value) {
+          inputRef.value.focus();
+        } else {
+          // No textarea yet — e.g. a new item added during search, which would
+          // otherwise render the read-only highlight view. Enter edit mode so
+          // the input exists, then focus it.
+          editing.value = true;
+          nextTick(() => { if (inputRef.value) inputRef.value.focus(); });
+        }
       }
     });
 
