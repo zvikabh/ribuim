@@ -1022,10 +1022,21 @@ body {
   pointer-events: none;
 }
 
-.reminder-banner-actions {
+.reminder-dismiss-all-banner {
   pointer-events: auto;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #ffe8cc;
+  border: 1px solid #f6a94b;
+  border-left: 4px solid #d93025;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.reminder-dismiss-all-banner .bi {
+  color: #d9770d;
 }
 
 @media (max-width: 767.98px) {

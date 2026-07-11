@@ -7,7 +7,8 @@ export default {
   },
   template: `
     <div v-if="activeBanners.length" class="reminder-banner-container">
-      <div v-if="activeBanners.length > 1" class="reminder-banner-actions">
+      <div v-if="activeBanners.length > 1" class="reminder-dismiss-all-banner">
+        <i class="bi bi-bell-slash-fill"></i>
         <button class="btn btn-sm btn-outline-secondary"
                 @click="dismissAllBanners"
                 title="Dismiss all reminders">
