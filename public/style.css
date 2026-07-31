@@ -1022,29 +1022,14 @@ body {
   pointer-events: none;
 }
 
-.reminder-dismiss-all-banner {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: #ffe8cc;
-  border: 1px solid #f6a94b;
-  border-left: 4px solid #d93025;
-  border-radius: 4px;
-  padding: 8px 12px;
-}
-
-.reminder-dismiss-all-banner .bi {
-  color: #d9770d;
-}
-
 @media (max-width: 767.98px) {
   .reminder-banner-container {
     left: 0;
   }
 }
 
+/* Shared box for everything stacked in the banner container: the fired
+   reminders and the "dismiss all" row. Only the fill colors differ. */
 .reminder-banner {
   pointer-events: auto;
   background: #fef7e0;
@@ -1059,6 +1044,17 @@ body {
   margin: 0 auto;
   width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reminder-banner.dismiss-all {
+  background: #ffe8cc;
+  border-color: #f6a94b;
+  border-left-color: #d93025;
+  justify-content: space-between;
+}
+
+.reminder-banner.dismiss-all .bi {
+  color: #d9770d;
 }
 
 .reminder-banner-title {
