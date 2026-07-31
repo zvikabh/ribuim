@@ -12,8 +12,12 @@ function toDate(ts) {
   return null;
 }
 
-function formatReminder(date) {
-  const now = new Date();
+// `nowMs` is passed in (rather than read from the clock here) so the caller's
+// computed re-runs on the ticking `now` ref: otherwise the Today/Tomorrow label
+// is cached at first render and goes stale once the date rolls over, e.g. on a
+// page left open overnight.
+function formatReminder(date, nowMs) {
+  const now = new Date(nowMs);
   const day = date.toLocaleDateString([], { weekday: "short" });
   // 24-hour time (Israel), e.g. "17:00".
   const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -79,7 +83,7 @@ export default {
       return "future";
     });
 
-    const display = computed(() => date.value ? formatReminder(date.value) : "");
+    const display = computed(() => date.value ? formatReminder(date.value, now.value) : "");
 
     const isRecurring = computed(() => isRecurringFn(props.reminderRecurrence));
 
