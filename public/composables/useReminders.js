@@ -13,6 +13,12 @@ const notificationPermission = ref(
 
 const CHECK_INTERVAL_MS = 30_000;
 
+// Ticks on every reminder check, so computeds that compare against the current
+// time (dueNoteCount) re-evaluate as reminders fall due. Reading Date.now()
+// inside such a computed doesn't work: Vue can't track it, so the value would
+// only refresh when notes.value happened to change.
+const nowTick = ref(Date.now());
+
 function toMs(ts) {
   if (!ts) return null;
   if (typeof ts.toMillis === "function") return ts.toMillis();
@@ -88,7 +94,10 @@ watch(notes, (current) => {
   checkDueReminders();
 }, { deep: true });
 
-setInterval(checkDueReminders, CHECK_INTERVAL_MS);
+setInterval(() => {
+  nowTick.value = Date.now();
+  checkDueReminders();
+}, CHECK_INTERVAL_MS);
 
 // ---------- Shared note notifications ----------
 
@@ -167,7 +176,7 @@ function updateFaviconBadge(hasAlert) {
 }
 
 const dueNoteCount = computed(() => {
-  const now = Date.now();
+  const now = nowTick.value;
   return notes.value.filter(n => {
     if (!n._isOwner || n.trashedAt) return false;
     const due = toMs(n.reminderAt);
