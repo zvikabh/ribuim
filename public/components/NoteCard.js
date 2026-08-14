@@ -41,6 +41,14 @@ function saveMode(noteId, mode) {
   }
 }
 
+function clearSavedMode(noteId) {
+  try {
+    localStorage.removeItem(COLLAPSE_MODE_KEY + noteId);
+  } catch (err) {
+    /* storage unavailable — nothing to clear */
+  }
+}
+
 // A note's title / item's label for human-readable undo/history descriptions.
 function noteName(title) {
   return title ? `"${title}"` : "an untitled note";
@@ -116,8 +124,10 @@ export default {
     // (or we restored such a choice above). Until then the note follows the
     // semi-collapsed default reactively (see the semiCollapseTarget watcher
     // below), which also covers preferences loading asynchronously after this
-    // card first rendered.
-    let modeUserSet = savedMode !== null;
+    // card first rendered. A restored mode only counts while the note actually
+    // has checked items to hide: with none, it's a leftover from a previous
+    // cycle and must not block the default.
+    let modeUserSet = savedMode !== null && initialCheckedCount > 0;
 
     const localTitle = ref(props.note.title || "");
     const titleDirty = ref(false);
@@ -343,12 +353,34 @@ export default {
       if (target && !modeUserSet) mode.value = target;
     });
 
+    // Losing every checked item starts a fresh cycle — most often a recurring
+    // reminder being marked Done, which unchecks them all. Any expand/collapse
+    // the user picked applied to the previous cycle's checked items, so drop it
+    // (including the persisted copy): otherwise that one-time choice pins the
+    // note for good and the semi-collapsed default can never apply to it again.
+    watch(checkedCount, (count, prev) => {
+      if (count === 0 && prev > 0) {
+        modeUserSet = false;
+        clearSavedMode(props.note.id);
+      }
+    });
+
     // Resolve the active mode: search always forces a full expansion; a stale
-    // "middle" (note changed so it no longer exists) snaps to expanded.
+    // "middle" (the note changed so that step no longer exists) degrades to the
+    // nearest state that still means what middle meant — all unchecked items
+    // shown, checked ones hidden.
     const effectiveMode = computed(() => {
       if (!shouldCollapse.value) return "expanded";
       if (searchForcesExpand.value) return "expanded";
-      if (mode.value === "middle" && !hasMiddle.value) return "expanded";
+      if (mode.value === "middle" && !hasMiddle.value) {
+        // Middle only stops existing once collapsing would truncate nothing, so
+        // "collapsed" still shows every unchecked item while keeping the checked
+        // ones hidden. Falling through to "expanded" here would reveal exactly
+        // what middle was hiding — e.g. a recurring reminder whose remaining
+        // unchecked items come to fit as it fills up with checked ones. With no
+        // checked items there is nothing to hide, so expanded is right.
+        return checkedCount.value > 0 ? "collapsed" : "expanded";
+      }
       return mode.value;
     });
 
