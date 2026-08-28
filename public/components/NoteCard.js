@@ -336,17 +336,22 @@ export default {
       isLong.value && checkedCount.value > 0 && hiddenUncheckedCollapsed.value > 0
     );
 
-    // With "semi-collapsed by default" on, a note with checked items should open
-    // showing only its unchecked items. This is recomputed reactively (not just
-    // at setup from defaultMode) so a note that only gains checked items later —
-    // e.g. a freshly created note the user fills in and then checks an item —
-    // still drops into the semi-collapsed mode. It's null whenever no
-    // semi-collapse applies, so we never force the plain long-note unchecked
-    // truncation here while the user is editing.
+    // With "semi-collapsed by default" on, a note shows every unchecked item and
+    // hides the checked ones. This is recomputed reactively (not just at setup
+    // from defaultMode) so a note that only gains checked items later — e.g. a
+    // freshly created note the user fills in and then checks an item — still
+    // drops into the semi-collapsed mode.
+    //
+    // "collapsed" hides the checked items but also truncates a long note's
+    // unchecked ones, so it is only chosen while that truncation would hide
+    // nothing. Losing the checked items breaks that assumption — marking a
+    // recurring reminder Done unchecks them all — and a leftover "collapsed"
+    // would then truncate the very items semi-collapse exists to show. With
+    // nothing left to hide, target the full view instead of leaving the stale
+    // mode in place.
     const semiCollapseTarget = computed(() => {
-      if (!preferences.value.defaultSemiCollapsed || checkedCount.value === 0) {
-        return null;
-      }
+      if (!preferences.value.defaultSemiCollapsed) return null;
+      if (checkedCount.value === 0) return "expanded";
       return hasMiddle.value ? "middle" : "collapsed";
     });
     watch(semiCollapseTarget, (target) => {
