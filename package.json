@@ -1,0 +1,14 @@
+{
+  "name": "ribuim",
+  "private": true,
+  "scripts": {
+    "build": "esbuild public/app.js --bundle --format=esm --minify --sourcemap --outfile=public/dist/app.js --external:vue --external:sortablejs --external:jszip --external:firebase/app --external:firebase/auth --external:firebase/firestore --external:firebase/messaging",
+    "dev": "esbuild public/app.js --bundle --format=esm --sourcemap --outfile=public/dist/app.js --servedir=public --serve=5173 --watch=forever --external:vue --external:sortablejs --external:jszip --external:firebase/app --external:firebase/auth --external:firebase/firestore --external:firebase/messaging",
+    "watch": "esbuild public/app.js --bundle --format=esm --sourcemap --outfile=public/dist/app.js --watch=forever --external:vue --external:sortablejs --external:jszip --external:firebase/app --external:firebase/auth --external:firebase/firestore --external:firebase/messaging",
+    "serve": "firebase emulators:start --only hosting",
+    "deploy": "firebase deploy"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
