@@ -1,4 +1,4 @@
-import { ref, computed, watch, onBeforeUnmount, onMounted, onUpdated, nextTick } from "vue";
+import { ref, computed, watch, onBeforeUnmount, onMounted, nextTick } from "vue";
 import HighlightText from "./HighlightText.js";
 import LinkifiedText from "./LinkifiedText.js";
 import { useAutocomplete } from "../composables/useAutocomplete.js";
@@ -78,7 +78,6 @@ export default {
           el.focus();
           const len = el.value.length;
           el.setSelectionRange(len, len);
-          autoResize();
         }
       });
     }
@@ -104,7 +103,6 @@ export default {
           // where the tap target is the ghost span, not the input itself).
           inputRef.value.focus();
           inputRef.value.setSelectionRange(newVal.length, newVal.length);
-          autoResize();
         }
       });
       if (timer) clearTimeout(timer);
@@ -119,34 +117,9 @@ export default {
       acceptGhost();
     }
 
-    let lastWidth = 0;
-    let resizeObserver = null;
-
-    function autoResize() {
-      const el = inputRef.value;
-      if (!el) return;
-      el.style.height = "0";
-      el.style.height = el.scrollHeight + "px";
-    }
-
-    function setupResizeObserver() {
-      if (resizeObserver) resizeObserver.disconnect();
-      const el = inputRef.value;
-      if (!el) return;
-      resizeObserver = new ResizeObserver(() => {
-        const w = el.clientWidth;
-        if (w !== lastWidth) {
-          lastWidth = w;
-          autoResize();
-        }
-      });
-      resizeObserver.observe(el);
-    }
-
     watch(() => props.label, (newVal) => {
       if (!dirty.value) {
         localLabel.value = newVal;
-        nextTick(autoResize);
       }
     });
 
@@ -161,7 +134,6 @@ export default {
     function onInput(e) {
       localLabel.value = e.target.value;
       dirty.value = true;
-      autoResize();
       updateGhost();
       if (timer) clearTimeout(timer);
       timer = setTimeout(flush, 500);
@@ -215,7 +187,6 @@ export default {
         emit("enter-pressed");
       } else if (e.key === "Enter" && e.shiftKey) {
         ghostSuffix.value = "";
-        nextTick(autoResize);
       } else if (e.key === "Backspace" && localLabel.value === "") {
         e.preventDefault();
         emit("backspace-empty");
@@ -250,8 +221,6 @@ export default {
     }
 
     onMounted(() => {
-      autoResize();
-      setupResizeObserver();
       if (props.autofocus) {
         if (inputRef.value) {
           inputRef.value.focus();
@@ -265,14 +234,8 @@ export default {
       }
     });
 
-    onUpdated(() => {
-      if (inputRef.value && !resizeObserver) {
-        setupResizeObserver();
-      }
-    });
 
     onBeforeUnmount(() => {
-      if (resizeObserver) resizeObserver.disconnect();
       if (timer) clearTimeout(timer);
       if (dirty.value) flush();
     });
@@ -297,7 +260,7 @@ export default {
       <LinkifiedText :text="localLabel" />
     </span>
     <span v-else class="ac-field item-label-field">
-      <div v-if="ghostSuffix" class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localLabel }}</span><span class="ac-ghost-suffix" @pointerdown="onGhostTap" title="Tap to accept">{{ ghostSuffix }}</span></div>
+      <div class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localLabel }}</span><span v-if="ghostSuffix" class="ac-ghost-suffix" @pointerdown="onGhostTap" title="Tap to accept">{{ ghostSuffix }}</span><span class="ac-ghost-tail" aria-hidden="true"> </span></div>
       <textarea ref="inputRef"
                 rows="1"
                 class="ribuim-input item-label-input"

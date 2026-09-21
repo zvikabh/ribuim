@@ -543,18 +543,23 @@ body {
 
 /* ---------- Autocomplete ghost text ---------- */
 
+/* The ghost replica and the textarea share a single grid cell. The replica is
+   what gives the field its height -- it wraps naturally -- and the textarea
+   stretches to match. This replaces the old measure-and-set-height JS, which
+   forced a synchronous layout for every field on the page. */
 .ac-field {
-  position: relative;
-  display: block;
+  display: grid;
   flex: 1;
   min-width: 0;
 }
 
+.ac-field > .ac-ghost,
+.ac-field > .ribuim-input {
+  grid-area: 1 / 1 / 2 / 2;
+  min-width: 0;
+}
+
 .ac-ghost {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   z-index: 0;
   padding: 2px 0;
   margin: 0;

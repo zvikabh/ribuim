@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted, onUpdated, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import Sortable from "sortablejs";
 import { useNotes } from "../composables/useNotes.js";
 import { useView } from "../composables/useView.js";
@@ -133,21 +133,9 @@ export default {
     const titleDirty = ref(false);
     let titleTimer = null;
     let sortable = null;
-    let titleResizeObserver = null;
-    let titleLastWidth = 0;
-
-    // The title is a textarea so long titles wrap; grow it to fit its content.
-    function titleAutoResize() {
-      const el = titleInputRef.value;
-      if (!el) return;
-      el.style.height = "0";
-      el.style.height = el.scrollHeight + "px";
-    }
-
     watch(() => props.note.title, (newVal) => {
       if (!titleDirty.value) {
         localTitle.value = newVal || "";
-        nextTick(titleAutoResize);
       }
     });
 
@@ -179,7 +167,6 @@ export default {
           // where the tap target is the ghost span, not the input itself).
           titleInputRef.value.focus();
           titleInputRef.value.setSelectionRange(newVal.length, newVal.length);
-          titleAutoResize();
         }
       });
       if (titleTimer) clearTimeout(titleTimer);
@@ -196,7 +183,6 @@ export default {
     function onTitleInput(e) {
       localTitle.value = e.target.value;
       titleDirty.value = true;
-      titleAutoResize();
       updateTitleGhost();
       if (titleTimer) clearTimeout(titleTimer);
       titleTimer = setTimeout(flushTitle, 500);
@@ -652,34 +638,11 @@ export default {
           onEnd: onDragEnd
         });
       }
-      titleAutoResize();
-      const titleEl = titleInputRef.value;
-      if (titleEl) {
-        titleResizeObserver = new ResizeObserver(() => {
-          const w = titleEl.clientWidth;
-          if (w !== titleLastWidth) { titleLastWidth = w; titleAutoResize(); }
-        });
-        titleResizeObserver.observe(titleEl);
-      }
     });
 
-    // The title textarea isn't rendered in search mode; set up its observer
-    // (and size it) once it appears.
-    onUpdated(() => {
-      const titleEl = titleInputRef.value;
-      if (titleEl && !titleResizeObserver) {
-        titleAutoResize();
-        titleResizeObserver = new ResizeObserver(() => {
-          const w = titleEl.clientWidth;
-          if (w !== titleLastWidth) { titleLastWidth = w; titleAutoResize(); }
-        });
-        titleResizeObserver.observe(titleEl);
-      }
-    });
 
     onBeforeUnmount(() => {
       if (sortable) { sortable.destroy(); sortable = null; }
-      if (titleResizeObserver) { titleResizeObserver.disconnect(); titleResizeObserver = null; }
       if (titleTimer) clearTimeout(titleTimer);
       if (focusClearTimer) clearTimeout(focusClearTimer);
       if (titleDirty.value) flushTitle();
@@ -791,7 +754,7 @@ export default {
         <HighlightText :text="note.title" :query="searchQuery" />
       </div>
       <span v-else class="ac-field note-title-field">
-        <div v-if="titleGhost" class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localTitle }}</span><span class="ac-ghost-suffix" @pointerdown="onTitleGhostTap" title="Tap to accept">{{ titleGhost }}</span></div>
+        <div class="ac-ghost"><span class="ac-ghost-typed" aria-hidden="true">{{ localTitle }}</span><span v-if="titleGhost" class="ac-ghost-suffix" @pointerdown="onTitleGhostTap" title="Tap to accept">{{ titleGhost }}</span><span class="ac-ghost-tail" aria-hidden="true"> </span></div>
         <textarea ref="titleInputRef"
                rows="1"
                class="ribuim-input note-title-input"
