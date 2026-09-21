@@ -142,7 +142,9 @@ function updateFaviconBadge(hasAlert) {
 
   if (!originalIcon) {
     originalIcon = new Image();
-    originalIcon.crossOrigin = "anonymous";
+    // The icon is same-origin, so the canvas stays untainted and the
+    // toDataURL() below works without opting into CORS. Setting crossOrigin
+    // here would only cost a second fetch of the icon, under its own cache key.
     originalIcon.src = link.href;
   }
 
